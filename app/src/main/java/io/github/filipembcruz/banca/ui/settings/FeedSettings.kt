@@ -193,7 +193,7 @@ private fun AddTabSheet(app: AppViewModel, onDismiss: () -> Unit) {
             Spacer(Modifier.height(16.dp))
             when (kind) {
                 0 -> FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    val builtIns = buildList {
+                    val builtIns = buildList<TabDef> {
                         if (s.tabs.none { it.type == TabType.TRENDING }) add(TabDef("trending", TabType.TRENDING))
                         if (s.tabs.none { it.type == TabType.LOCAL }) add(TabDef("local", TabType.LOCAL))
                         (listOf(Topics.SCITECH) + Topics.all.map { it.id }).forEach { id ->
