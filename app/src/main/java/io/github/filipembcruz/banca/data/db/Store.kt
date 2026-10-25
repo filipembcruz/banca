@@ -290,6 +290,28 @@ class Store(private val helper: BancaDb) {
         db.rawQuery("SELECT COUNT(*) FROM notified WHERE pending = 0 AND rule != 'digest-queue' AND at > ?", arrayOf(since.toString()))
             .use { c -> if (c.moveToFirst()) c.getInt(0) else 0 }
 
+    /** Alerts sent recently (not digest items), newest first. */
+    fun recentAlerts(days: Int = 3): List<Article> =
+        db.rawQuery(
+            "SELECT id FROM notified WHERE pending = 0 AND rule NOT IN ('digest', 'digest-queue') AND at > ? ORDER BY at DESC LIMIT 50",
+            arrayOf((System.currentTimeMillis() - days * DAY).toString()),
+        ).use { c -> c.list { it.getString(0) } }.mapNotNull { findArticle(it) }
+
+    /** Digest batches as (time, article ids), newest first. */
+    fun digests(): List<Pair<Long, List<String>>> = runCatching {
+        val a = JSONArray(kvGet("digests")?.first ?: "[]")
+        (0 until a.length()).map { i ->
+            val o = a.getJSONObject(i)
+            val ids = o.getJSONArray("ids")
+            o.getLong("at") to (0 until ids.length()).map { ids.getString(it) }
+        }
+    }.getOrDefault(emptyList())
+
+    fun addDigest(ids: List<String>) {
+        val list = listOf(System.currentTimeMillis() to ids) + digests()
+        kvPut("digests", JSONArray(list.take(10).map { (at, i) -> JSONObject().put("at", at).put("ids", JSONArray(i)) }).toString())
+    }
+
     fun pruneNotified() {
         db.delete("notified", "at < ?", arrayOf((System.currentTimeMillis() - 14 * DAY).toString()))
         db.delete("links", "at < ?", arrayOf((System.currentTimeMillis() - 30 * DAY).toString()))

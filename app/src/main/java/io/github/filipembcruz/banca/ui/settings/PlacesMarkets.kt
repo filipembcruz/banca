@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.filipembcruz.banca.R
+import io.github.filipembcruz.banca.ui.components.ReorderableColumn
 import io.github.filipembcruz.banca.core.LocaleHelper
 import io.github.filipembcruz.banca.data.model.Markets
 import io.github.filipembcruz.banca.data.model.Place
@@ -181,26 +182,21 @@ fun PlacesPage(vm: SettingsViewModel, app: AppViewModel, onBack: () -> Unit) {
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             )
         }
-        items(s.places, key = { it.key }) { p ->
-            val i = s.places.indexOf(p)
-            Surface(shape = RoundedCornerShape(18.dp), color = LocalExtras.current.card, modifier = Modifier.padding(vertical = 4.dp).animateItem()) {
-                Row(Modifier.padding(start = 16.dp, end = 4.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Rounded.Place, null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.width(14.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(p.name, style = MaterialTheme.typography.bodyLarge)
-                        Text(
-                            listOf(p.admin, p.country).filter { it.isNotBlank() }.joinToString(", "),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1, overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    IconButton(onClick = { app.updateSettings { it.copy(places = it.places.swap(i, i - 1)) } }, enabled = i > 0) {
-                        Icon(Icons.Rounded.KeyboardArrowUp, stringResource(R.string.action_move_up))
-                    }
+        item {
+            ReorderableColumn(
+                items = s.places,
+                itemKey = { it.key },
+                onMove = { list -> app.updateSettings { it.copy(places = list) } },
+            ) { p, dragging, handle ->
+                ReorderRow(
+                    p.name,
+                    listOf(p.admin, p.country).filter { it.isNotBlank() }.joinToString(", "),
+                    Icons.Rounded.Place,
+                    dragging,
+                    handle,
+                ) {
                     IconButton(onClick = { app.updateSettings { st -> st.copy(places = st.places.filter { it.key != p.key }) } }) {
-                        Icon(Icons.Rounded.DeleteOutline, stringResource(R.string.action_remove))
+                        Icon(Icons.Rounded.DeleteOutline, stringResource(R.string.action_remove), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -240,20 +236,21 @@ fun MarketsPage(app: AppViewModel, onBack: () -> Unit) {
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             )
         }
-        items(s.markets, key = { it }) { id ->
-            val m = Markets.byId(id) ?: return@items
-            val i = s.markets.indexOf(id)
-            Surface(shape = RoundedCornerShape(18.dp), color = LocalExtras.current.card, modifier = Modifier.padding(vertical = 4.dp).animateItem()) {
-                Row(Modifier.padding(start = 16.dp, end = 4.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(m.label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                    IconButton(onClick = { app.updateSettings { it.copy(markets = it.markets.swap(i, i - 1)) } }, enabled = i > 0) {
-                        Icon(Icons.Rounded.KeyboardArrowUp, stringResource(R.string.action_move_up))
-                    }
-                    IconButton(onClick = { app.updateSettings { it.copy(markets = it.markets.swap(i, i + 1)) } }, enabled = i < s.markets.lastIndex) {
-                        Icon(Icons.Rounded.KeyboardArrowDown, stringResource(R.string.action_move_down))
-                    }
+        item {
+            ReorderableColumn(
+                items = s.markets.filter { Markets.byId(it) != null },
+                itemKey = { it },
+                onMove = { list -> app.updateSettings { it.copy(markets = list) } },
+            ) { id, dragging, handle ->
+                val m = Markets.byId(id)!!
+                ReorderRow(
+                    m.label,
+                    stringResource(if (m.isCurrency) R.string.market_currency else R.string.market_index),
+                    dragging = dragging,
+                    handle = handle,
+                ) {
                     IconButton(onClick = { app.updateSettings { st -> st.copy(markets = st.markets - id) } }) {
-                        Icon(Icons.Rounded.DeleteOutline, stringResource(R.string.action_remove))
+                        Icon(Icons.Rounded.DeleteOutline, stringResource(R.string.action_remove), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }

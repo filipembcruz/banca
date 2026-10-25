@@ -69,16 +69,25 @@ class NewsRepository(
         val saved = store.savedIds()
         val topicWeights = store.topicWeights()
 
+        val now = System.currentTimeMillis()
+        val maxAge = if (s.maxAgeHours > 0 && type != TabType.SEARCH) s.maxAgeHours * 3_600_000L else Long.MAX_VALUE
+        val muted = topicWeights.filter { it.key.startsWith("term:") && it.value <= -1.0 }.keys.map { it.removePrefix("term:") }
+
         val visible = items.filter { a -> a.id !in hidden && !isBlocked(a, blocked) }
+            .filter { a -> a.published == 0L || now - a.published <= maxAge }
             .map { a -> a.copy(related = a.related.filterNot { r -> blocked.any { b -> b.name.equals(r.source, true) } }) }
 
-        val now = System.currentTimeMillis()
-        val ordered = when (type) {
+        val sorted = when (type) {
             TabType.FOR_YOU -> visible.sortedByDescending { score(it, now, topicWeights, sources) }
             TabType.TRENDING -> visible.sortedByDescending { trendScore(it, now) }
             else -> visible.sortedWith(
                 compareByDescending<Article> { a -> (a.domain?.let { sources[it] }?.weight ?: 0.0) > -2.5 }.thenByDescending { it.published }
             )
+        }
+        // "Show less about <term>": stories mentioning a muted term sink to the end.
+        val ordered = if (muted.isEmpty()) sorted else {
+            val (quiet, normal) = sorted.partition { a -> val t = Text.fold(a.title); muted.any { t.contains(it) } }
+            normal + quiet
         }
         return ordered.map { FeedItem(it, read = it.id in read, saved = it.id in saved) }
     }
@@ -167,7 +176,8 @@ class NewsRepository(
                 FeedUrl(GoogleNews.topic(e, "NATION"), "nation"),
                 FeedUrl(GoogleNews.topic(e, "WORLD"), "world"),
             )
-            TabType.LOCAL -> s.places.map { FeedCatalog.forPlace(e, it) }
+            TabType.LOCAL -> (if (tab.value.isBlank()) s.places else s.places.filter { it.key == tab.value })
+                .map { FeedCatalog.forPlace(e, it) }
             TabType.TOPIC -> FeedCatalog.forTopicId(e, tab.value)
             TabType.SEARCH -> listOf(FeedCatalog.forTerm(e, tab.value, "7d"))
             TabType.FEED -> listOf(FeedUrl(tab.value, null))
@@ -285,6 +295,14 @@ class NewsRepository(
     }
 
     suspend fun setTopicWeight(topic: String, w: Double) = withContext(Dispatchers.IO) { store.setTopicWeight(topic, w) }
+
+    /** Mutes a word or name from a headline; returns the previous weight for Undo. */
+    suspend fun showLessTerm(term: String): Double = withContext(Dispatchers.IO) {
+        val key = "term:" + Text.fold(term)
+        val prev = store.topicWeights()[key] ?: 0.0
+        store.setTopicWeight(key, -3.0)
+        prev
+    }
 
     suspend fun showLessSource(domain: String, name: String): Double = withContext(Dispatchers.IO) {
         val prev = store.sourcePrefs()[domain]?.weight ?: 0.0

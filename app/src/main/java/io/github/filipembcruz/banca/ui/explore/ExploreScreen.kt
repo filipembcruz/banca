@@ -6,6 +6,15 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Slider
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.mutableFloatStateOf
+import io.github.filipembcruz.banca.ui.components.ChipFlow
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -151,29 +160,62 @@ fun ExploreScreen(
     app: AppViewModel,
     initialQuery: String?,
     focusSearch: Boolean,
-    bottomPadding: androidx.compose.ui.unit.Dp,
+    onBack: () -> Unit,
 ) {
+    val bottomPadding = 0.dp
     val settings = LocalSettings.current
     val results by vm.results.collectAsStateWithLifecycle()
     val sources by vm.sources.collectAsStateWithLifecycle()
     var query by rememberSaveable { mutableStateOf(initialQuery ?: vm.lastQuery) }
     var window by rememberSaveable { mutableStateOf(vm.lastWindow ?: "7d") }
+    var customHours by rememberSaveable { mutableStateOf(false) }
     val focus = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
 
     LaunchedEffect(Unit) { vm.loadSources() }
     LaunchedEffect(focusSearch) { if (focusSearch) runCatching { focus.requestFocus() } }
-    LaunchedEffect(initialQuery) { if (!initialQuery.isNullOrBlank()) vm.search(initialQuery, window) }
+    LaunchedEffect(initialQuery) { if (!initialQuery.isNullOrBlank()) vm.search(initialQuery, window.takeIf { it != "any" }) }
+
+    if (customHours) {
+        var hours by remember { mutableFloatStateOf(window.removeSuffix("h").toFloatOrNull() ?: 24f) }
+        AlertDialog(
+            onDismissRequest = { customHours = false },
+            title = { Text(stringResource(R.string.window_custom_title)) },
+            text = {
+                Column {
+                    Text(
+                        stringResource(R.string.window_hours, hours.toInt()),
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Slider(value = hours, onValueChange = { hours = it }, valueRange = 1f..72f, steps = 70)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    window = "${hours.toInt()}h"
+                    customHours = false
+                    if (query.isNotBlank()) {
+                        focusManager.clearFocus()
+                        vm.search(query, window)
+                    }
+                }) { Text(stringResource(R.string.ok)) }
+            },
+            dismissButton = { TextButton(onClick = { customHours = false }) { Text(stringResource(R.string.cancel)) } },
+        )
+    }
 
     fun run() {
         focusManager.clearFocus()
         vm.search(query, window.takeIf { it != "any" })
     }
 
-    Column(Modifier.fillMaxSize()) {
-        Column(Modifier.statusBarsPadding().padding(horizontal = 20.dp).padding(top = 12.dp)) {
-            Text(stringResource(R.string.nav_explore), style = MaterialTheme.typography.headlineMedium)
-            Spacer(Modifier.height(12.dp))
+    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).navigationBarsPadding()) {
+        Row(
+            Modifier.statusBarsPadding().padding(start = 4.dp, end = 16.dp, top = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.action_back)) }
             TextField(
                 value = query,
                 onValueChange = { query = it },
@@ -192,12 +234,31 @@ fun ExploreScreen(
                 ),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { run() }),
-                modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                modifier = Modifier.weight(1f).focusRequester(focus),
             )
-            Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("1d" to R.string.window_24h, "7d" to R.string.window_week, "any" to R.string.window_any).forEach { (w, label) ->
-                    FilterChip(selected = window == w, onClick = { window = w; if (query.isNotBlank()) run() }, label = { Text(stringResource(label)) })
-                }
+        }
+        // Time window: presets plus any number of hours.
+        val presets = listOf("1h", "6h", "12h", "1d", "3d", "7d", "any")
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(top = 10.dp, bottom = 4.dp),
+        ) {
+            items(presets) { w ->
+                FilterChip(
+                    selected = window == w,
+                    onClick = { window = w; if (query.isNotBlank()) run() },
+                    label = { Text(windowLabel(w), maxLines = 1, softWrap = false) },
+                )
+            }
+            item {
+                val custom = window !in presets
+                FilterChip(
+                    selected = custom,
+                    onClick = { customHours = true },
+                    label = { Text(if (custom) windowLabel(window) else stringResource(R.string.window_custom), maxLines = 1, softWrap = false) },
+                    leadingIcon = { Icon(Icons.Rounded.Tune, null, Modifier.size(16.dp)) },
+                )
             }
         }
 
@@ -265,7 +326,7 @@ fun ExploreScreen(
                         }
                         item { SectionHeader(stringResource(R.string.section_topics)) }
                         item {
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ChipFlow {
                                 Topics.all.forEach { t ->
                                     val followed = t.id in settings.topics
                                     val label = stringResource(Labels.topicRes(t.id)!!)
@@ -291,6 +352,17 @@ fun ExploreScreen(
             }
         }
     }
+}
+
+@Composable
+private fun windowLabel(w: String): String = when {
+    w == "any" -> stringResource(R.string.window_any)
+    w.endsWith("h") -> stringResource(R.string.window_hours, w.dropLast(1).toIntOrNull() ?: 0)
+    w.endsWith("d") -> {
+        val d = w.dropLast(1).toIntOrNull() ?: 1
+        if (d == 1) stringResource(R.string.window_24h) else stringResource(R.string.window_days, d)
+    }
+    else -> w
 }
 
 @Composable

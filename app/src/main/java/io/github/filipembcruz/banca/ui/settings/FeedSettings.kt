@@ -54,6 +54,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.filipembcruz.banca.R
+import io.github.filipembcruz.banca.ui.components.ReorderableColumn
+import androidx.compose.material3.Switch
+import io.github.filipembcruz.banca.ui.components.ChipFlow
 import io.github.filipembcruz.banca.data.model.BlockPref
 import io.github.filipembcruz.banca.data.model.ForYouBlock
 import io.github.filipembcruz.banca.data.model.TabDef
@@ -88,31 +91,17 @@ fun TabsPage(app: AppViewModel, onBack: () -> Unit) {
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             )
         }
-        items(s.tabs, key = { it.id }) { tab ->
-            val i = s.tabs.indexOf(tab)
-            Surface(
-                shape = RoundedCornerShape(18.dp),
-                color = LocalExtras.current.card,
-                modifier = Modifier.padding(vertical = 4.dp).animateItem(),
-            ) {
-                Row(Modifier.padding(start = 16.dp, end = 4.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(tabIcon(tab), null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.width(14.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(tabTitle(tab), style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(tabKind(tab), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    IconButton(onClick = { app.updateSettings { it.copy(tabs = it.tabs.move(i, i - 1)) } }, enabled = i > 0) {
-                        Icon(Icons.Rounded.KeyboardArrowUp, stringResource(R.string.action_move_up))
-                    }
-                    IconButton(onClick = { app.updateSettings { it.copy(tabs = it.tabs.move(i, i + 1)) } }, enabled = i < s.tabs.lastIndex) {
-                        Icon(Icons.Rounded.KeyboardArrowDown, stringResource(R.string.action_move_down))
-                    }
-                    IconButton(
-                        onClick = { app.updateSettings { st -> st.copy(tabs = st.tabs.filter { it.id != tab.id }) } },
-                        enabled = tab.type != TabType.FOR_YOU && s.tabs.size > 1,
-                    ) {
-                        Icon(Icons.Rounded.DeleteOutline, stringResource(R.string.action_remove))
+        item {
+            ReorderableColumn(
+                items = s.tabs,
+                itemKey = { it.id },
+                onMove = { list -> app.updateSettings { it.copy(tabs = list) } },
+            ) { tab, dragging, handle ->
+                ReorderRow(tabTitle(tab), tabKind(tab), tabIcon(tab), dragging, handle) {
+                    if (tab.type != TabType.FOR_YOU && s.tabs.size > 1) {
+                        IconButton(onClick = { app.updateSettings { st -> st.copy(tabs = st.tabs.filter { it.id != tab.id }) } }) {
+                            Icon(Icons.Rounded.DeleteOutline, stringResource(R.string.action_remove), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
             }
@@ -124,26 +113,18 @@ fun TabsPage(app: AppViewModel, onBack: () -> Unit) {
                 Text(stringResource(R.string.action_add_tab))
             }
         }
-        item {
-            Group(stringResource(R.string.settings_edition), footer = stringResource(R.string.settings_edition_sub)) {
-                ChoiceItem(
-                    stringResource(R.string.settings_edition),
-                    Editions.all.map { it.id to editionLabel(it.id) },
-                    s.edition,
-                ) { e -> app.updateSettings { it.copy(edition = e) } }
-            }
-        }
     }
     if (adding) AddTabSheet(app, onDismiss = { adding = false })
 }
 
 @Composable
 private fun editionLabel(id: String): String = when (id) {
-    "BR" -> stringResource(R.string.edition_br)
     "PT" -> stringResource(R.string.edition_pt)
     "US" -> stringResource(R.string.edition_us)
-    else -> stringResource(R.string.edition_gb)
+    else -> stringResource(R.string.edition_br)
 }
+
+
 
 private fun tabIcon(tab: TabDef) = when (tab.type) {
     TabType.FOR_YOU -> Icons.Rounded.AutoAwesome
@@ -192,7 +173,7 @@ private fun AddTabSheet(app: AppViewModel, onDismiss: () -> Unit) {
             }
             Spacer(Modifier.height(16.dp))
             when (kind) {
-                0 -> FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                0 -> ChipFlow {
                     val builtIns = buildList {
                         if (s.tabs.none { it.type == TabType.TRENDING }) add(TabDef("trending", TabType.TRENDING))
                         if (s.tabs.none { it.type == TabType.LOCAL }) add(TabDef("local", TabType.LOCAL))
@@ -264,45 +245,31 @@ fun ForYouPage(app: AppViewModel, onBack: () -> Unit) {
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             )
         }
-        items(s.blocks, key = { it.block.name }) { pref ->
-            val i = s.blocks.indexOf(pref)
-            Surface(
-                shape = RoundedCornerShape(18.dp),
-                color = LocalExtras.current.card,
-                modifier = Modifier.padding(vertical = 4.dp).animateItem(),
-            ) {
-                Row(Modifier.padding(start = 16.dp, end = 4.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = {
-                        app.updateSettings { st -> st.copy(blocks = st.blocks.map { if (it.block == pref.block) BlockPref(it.block, !it.visible) else it }) }
-                    }) {
-                        Icon(
-                            if (pref.visible) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff,
-                            null,
-                            tint = if (pref.visible) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        item {
+            ReorderableColumn(
+                items = s.blocks,
+                itemKey = { it.block.name },
+                onMove = { list -> app.updateSettings { it.copy(blocks = list) } },
+            ) { pref, dragging, handle ->
+                ReorderRow(
+                    stringResource(blockLabel(pref.block)),
+                    dragging = dragging,
+                    handle = handle,
+                    dimmed = !pref.visible,
+                    leading = {
+                        Switch(
+                            checked = pref.visible,
+                            onCheckedChange = { v ->
+                                app.updateSettings { st -> st.copy(blocks = st.blocks.map { if (it.block == pref.block) BlockPref(it.block, v) else it }) }
+                            },
                         )
-                    }
-                    Text(
-                        stringResource(blockLabel(pref.block)),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = if (pref.visible) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f),
-                    )
-                    IconButton(onClick = { app.updateSettings { it.copy(blocks = it.blocks.move(i, i - 1)) } }, enabled = i > 0) {
-                        Icon(Icons.Rounded.KeyboardArrowUp, stringResource(R.string.action_move_up))
-                    }
-                    IconButton(onClick = { app.updateSettings { it.copy(blocks = it.blocks.move(i, i + 1)) } }, enabled = i < s.blocks.lastIndex) {
-                        Icon(Icons.Rounded.KeyboardArrowDown, stringResource(R.string.action_move_down))
-                    }
-                }
+                    },
+                )
             }
         }
         item {
             Group(stringResource(R.string.foryou_mix), footer = stringResource(R.string.foryou_mix_sub)) {
-                FlowRow(
-                    Modifier.padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
+                ChipFlow(Modifier.padding(16.dp)) {
                     Topics.all.forEach { t ->
                         val on = t.id in s.topics
                         FilterChip(
@@ -316,6 +283,7 @@ fun ForYouPage(app: AppViewModel, onBack: () -> Unit) {
             }
         }
         item { TermsGroup(app) }
+        item { FeedScopeGroup(app) }
     }
 }
 
@@ -325,7 +293,7 @@ private fun TermsGroup(app: AppViewModel) {
     var term by remember { mutableStateOf("") }
     Group(stringResource(R.string.foryou_terms), footer = stringResource(R.string.foryou_terms_sub)) {
         Column(Modifier.padding(16.dp)) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            ChipFlow {
                 s.terms.forEach { t ->
                     FilterChip(
                         selected = true,
@@ -421,5 +389,35 @@ fun TopicsSourcesPage(vm: SettingsViewModel, app: AppViewModel, onBack: () -> Un
                 }, chevron = false)
             }
         }
+    }
+}
+
+/** Country of the news and how old stories may be. */
+@Composable
+fun FeedScopeGroup(app: AppViewModel) {
+    val s = LocalSettings.current
+    Group(stringResource(R.string.settings_edition), footer = stringResource(R.string.settings_edition_sub)) {
+        ChoiceItem(
+            stringResource(R.string.settings_edition),
+            Editions.all.map { it.id to editionLabel(it.id) },
+            s.edition,
+        ) { e -> app.updateSettings { it.copy(edition = e) } }
+    }
+    Group(stringResource(R.string.feed_age), footer = stringResource(R.string.feed_age_sub)) {
+        val steps = listOf(6, 12, 24, 48, 72, 168, 0)
+        val ctx = androidx.compose.ui.platform.LocalContext.current
+        val labels = steps.map { h ->
+            when {
+                h == 0 -> ctx.getString(R.string.feed_age_any)
+                h < 48 -> ctx.getString(R.string.window_hours, h)
+                else -> ctx.getString(R.string.window_days, h / 24)
+            }
+        }
+        val idx = steps.indexOf(s.maxAgeHours).let { if (it < 0) 3 else it }
+        SliderItem(
+            stringResource(R.string.feed_age_label),
+            idx.toFloat(), 0f..(steps.size - 1).toFloat(), steps.size - 2,
+            label = { v -> labels[v.toInt().coerceIn(0, steps.lastIndex)] },
+        ) { v -> app.updateSettings { it.copy(maxAgeHours = steps[v.toInt().coerceIn(0, steps.lastIndex)]) } }
     }
 }

@@ -11,7 +11,6 @@ S = {
 
     # navigation
     "nav_home": ("Home", "Início"),
-    "nav_explore": ("Explore", "Explorar"),
     "nav_saved": ("Saved", "Salvos"),
     "nav_settings": ("Settings", "Ajustes"),
 
@@ -31,6 +30,7 @@ S = {
     "section_sources": ("Sources", "Fontes"),
     "weather_feels": ("Feels like %1$s", "Sensação de %1$s"),
     "weather_today": ("Today", "Hoje"),
+    "weather_manage": ("Manage places", "Gerenciar lugares"),
     "empty_title": ("Nothing here yet", "Nada por aqui ainda"),
     "empty_body": ("Pull down to refresh or follow more topics.", "Puxe para atualizar ou siga mais tópicos."),
     "empty_local": ("Add a place to see local news.", "Adicione um lugar para ver notícias locais."),
@@ -93,8 +93,8 @@ S = {
     "action_unsave": ("Remove from saved", "Remover dos salvos"),
     "action_share": ("Share", "Compartilhar"),
     "action_more": ("More options", "Mais opções"),
-    "action_hide_story": ("Hide this story", "Ocultar esta notícia"),
-    "action_less_topic": ("Show less about %1$s", "Mostrar menos sobre %1$s"),
+    "action_hide": ("Hide", "Ocultar"),
+    "sheet_show_less": ("Show less about", "Mostrar menos sobre"),
     "action_less_source": ("Show less from %1$s", "Mostrar menos de %1$s"),
     "action_block_source": ("Block %1$s", "Bloquear %1$s"),
     "action_follow": ("Follow %1$s", "Seguir %1$s"),
@@ -118,8 +118,6 @@ S = {
     "action_unblock": ("Unblock", "Desbloquear"),
     "action_restore": ("Restore", "Restaurar"),
     "action_remove": ("Remove", "Remover"),
-    "action_move_up": ("Move up", "Mover para cima"),
-    "action_move_down": ("Move down", "Mover para baixo"),
     "action_summarize": ("Summary", "Resumo"),
     "action_coverage": ("Coverage", "Cobertura"),
     "action_reader_view": ("Reader view", "Modo leitura"),
@@ -159,8 +157,11 @@ S = {
 
     # explore
     "window_24h": ("Last 24 h", "Últimas 24 h"),
-    "window_week": ("This week", "Esta semana"),
     "window_any": ("Any time", "Qualquer data"),
+    "window_custom": ("Custom", "Personalizado"),
+    "window_custom_title": ("Stories from the last…", "Notícias das últimas…"),
+    "window_hours": ("%1$d h", "%1$d h"),
+    "window_days": ("%1$d days", "%1$d dias"),
     "results_for": ("Results for \"%1$s\"", "Resultados para \"%1$s\""),
     "no_results": ("No results", "Nenhum resultado"),
     "no_results_body": ("Try other words or a wider time range.", "Tente outras palavras ou um período maior."),
@@ -171,6 +172,13 @@ S = {
     "saved_tab_history": ("History", "Histórico"),
     "saved_empty_title": ("No saved stories", "Nenhuma notícia salva"),
     "saved_empty_body": ("Tap the bookmark on any story to read it later, even offline.", "Toque no marcador de qualquer notícia para ler depois, até offline."),
+    "saved_search_hint": ("Search saved stories", "Buscar nos salvos"),
+    "history_search_hint": ("Search history", "Buscar no histórico"),
+    "inbox_title": ("Notifications", "Notificações"),
+    "inbox_empty_title": ("Nothing here yet", "Nada por aqui ainda"),
+    "inbox_empty_body": ("Digests and alerts you receive show up here, ready to open.", "Os resumos e alertas que você receber aparecem aqui, prontos para abrir."),
+    "inbox_digest_at": ("Digest · %1$s", "Resumo · %1$s"),
+    "inbox_alerts": ("Recent alerts", "Alertas recentes"),
     "history_empty_title": ("No history yet", "Nenhum histórico ainda"),
     "history_empty_body": ("Stories you open show up here.", "As notícias que você abrir aparecem aqui."),
 
@@ -209,12 +217,15 @@ S = {
     "settings_data_sub": ("Cache, images and backup", "Cache, imagens e backup"),
     "settings_about": ("About", "Sobre"),
     "settings_about_sub": ("Version, sources and licenses", "Versão, fontes e licenças"),
-    "settings_edition": ("News edition", "Edição de notícias"),
-    "settings_edition_sub": ("Which Google News edition feeds your tabs.", "Qual edição do Google News alimenta suas abas."),
+    "settings_edition": ("News country", "País das notícias"),
+    "settings_edition_sub": ("The Google News country and language behind your tabs and searches. Places abroad, like Lisbon, automatically use their own country.", "País e idioma do Google News que alimentam suas abas e buscas. Lugares de outros países, como Lisboa, usam automaticamente o país deles."),
+    "feed_age": ("Story age", "Idade das notícias"),
+    "feed_age_sub": ("Older stories are hidden from tabs. Search is not affected.", "Notícias mais antigas somem das abas. A busca não é afetada."),
+    "feed_age_label": ("Show stories up to", "Mostrar notícias de até"),
+    "feed_age_any": ("Any age", "Qualquer idade"),
     "edition_br": ("Brazil", "Brasil"),
     "edition_pt": ("Portugal", "Portugal"),
-    "edition_us": ("US", "EUA"),
-    "edition_gb": ("UK", "Reino Unido"),
+    "edition_us": ("International (English)", "Internacional (inglês)"),
 
     # tabs
     "tabs_help": ("Reorder, remove or add tabs. Swipe between them on Home.", "Reordene, remova ou adicione abas. Deslize entre elas no Início."),
@@ -244,7 +255,7 @@ S = {
 
     # topics & sources
     "topics_shown_less": ("Topics shown less", "Tópicos exibidos menos"),
-    "topics_shown_less_sub": ("Set with \"Show less about…\" on a story.", "Definidos com \"Mostrar menos sobre…\" em uma notícia."),
+    "topics_shown_less_sub": ("To add one, open the ⋮ menu of any story (or long-press it) and pick a topic, name or outlet under \"Show less about\".", "Para adicionar, abra o menu ⋮ de uma notícia (ou toque e segure nela) e escolha um tópico, nome ou veículo em \"Mostrar menos sobre\"."),
     "sources_blocked_less": ("Blocked and muted sources", "Fontes bloqueadas e silenciadas"),
     "sources_blocked_less_sub": ("Blocked sources never appear. Muted ones appear less.", "Fontes bloqueadas nunca aparecem. As silenciadas aparecem menos."),
     "source_blocked": ("Blocked", "Bloqueada"),

@@ -2,7 +2,6 @@
 <resources>
     <string name="app_tagline">Sua banca: notícias com calma, do seu jeito.</string>
     <string name="nav_home">Início</string>
-    <string name="nav_explore">Explorar</string>
     <string name="nav_saved">Salvos</string>
     <string name="nav_settings">Ajustes</string>
     <string name="greeting_morning">Bom dia</string>
@@ -20,6 +19,7 @@
     <string name="section_sources">Fontes</string>
     <string name="weather_feels">Sensação de %1$s</string>
     <string name="weather_today">Hoje</string>
+    <string name="weather_manage">Gerenciar lugares</string>
     <string name="empty_title">Nada por aqui ainda</string>
     <string name="empty_body">Puxe para atualizar ou siga mais tópicos.</string>
     <string name="empty_local">Adicione um lugar para ver notícias locais.</string>
@@ -72,8 +72,8 @@
     <string name="action_unsave">Remover dos salvos</string>
     <string name="action_share">Compartilhar</string>
     <string name="action_more">Mais opções</string>
-    <string name="action_hide_story">Ocultar esta notícia</string>
-    <string name="action_less_topic">Mostrar menos sobre %1$s</string>
+    <string name="action_hide">Ocultar</string>
+    <string name="sheet_show_less">Mostrar menos sobre</string>
     <string name="action_less_source">Mostrar menos de %1$s</string>
     <string name="action_block_source">Bloquear %1$s</string>
     <string name="action_follow">Seguir %1$s</string>
@@ -97,8 +97,6 @@
     <string name="action_unblock">Desbloquear</string>
     <string name="action_restore">Restaurar</string>
     <string name="action_remove">Remover</string>
-    <string name="action_move_up">Mover para cima</string>
-    <string name="action_move_down">Mover para baixo</string>
     <string name="action_summarize">Resumo</string>
     <string name="action_coverage">Cobertura</string>
     <string name="action_reader_view">Modo leitura</string>
@@ -134,8 +132,11 @@
     <string name="msg_permission_denied">As notificações do Banca estão bloqueadas nas configurações do sistema</string>
     <string name="msg_refreshing">Atualizando em segundo plano</string>
     <string name="window_24h">Últimas 24 h</string>
-    <string name="window_week">Esta semana</string>
     <string name="window_any">Qualquer data</string>
+    <string name="window_custom">Personalizado</string>
+    <string name="window_custom_title">Notícias das últimas…</string>
+    <string name="window_hours">%1$d h</string>
+    <string name="window_days">%1$d dias</string>
     <string name="results_for">Resultados para \"%1$s\"</string>
     <string name="no_results">Nenhum resultado</string>
     <string name="no_results_body">Tente outras palavras ou um período maior.</string>
@@ -144,6 +145,13 @@
     <string name="saved_tab_history">Histórico</string>
     <string name="saved_empty_title">Nenhuma notícia salva</string>
     <string name="saved_empty_body">Toque no marcador de qualquer notícia para ler depois, até offline.</string>
+    <string name="saved_search_hint">Buscar nos salvos</string>
+    <string name="history_search_hint">Buscar no histórico</string>
+    <string name="inbox_title">Notificações</string>
+    <string name="inbox_empty_title">Nada por aqui ainda</string>
+    <string name="inbox_empty_body">Os resumos e alertas que você receber aparecem aqui, prontos para abrir.</string>
+    <string name="inbox_digest_at">Resumo · %1$s</string>
+    <string name="inbox_alerts">Alertas recentes</string>
     <string name="history_empty_title">Nenhum histórico ainda</string>
     <string name="history_empty_body">As notícias que você abrir aparecem aqui.</string>
     <string name="reader_minutes">%1$d min de leitura</string>
@@ -178,12 +186,15 @@
     <string name="settings_data_sub">Cache, imagens e backup</string>
     <string name="settings_about">Sobre</string>
     <string name="settings_about_sub">Versão, fontes e licenças</string>
-    <string name="settings_edition">Edição de notícias</string>
-    <string name="settings_edition_sub">Qual edição do Google News alimenta suas abas.</string>
+    <string name="settings_edition">País das notícias</string>
+    <string name="settings_edition_sub">País e idioma do Google News que alimentam suas abas e buscas. Lugares de outros países, como Lisboa, usam automaticamente o país deles.</string>
+    <string name="feed_age">Idade das notícias</string>
+    <string name="feed_age_sub">Notícias mais antigas somem das abas. A busca não é afetada.</string>
+    <string name="feed_age_label">Mostrar notícias de até</string>
+    <string name="feed_age_any">Qualquer idade</string>
     <string name="edition_br">Brasil</string>
     <string name="edition_pt">Portugal</string>
-    <string name="edition_us">EUA</string>
-    <string name="edition_gb">Reino Unido</string>
+    <string name="edition_us">Internacional (inglês)</string>
     <string name="tabs_help">Reordene, remova ou adicione abas. Deslize entre elas no Início.</string>
     <string name="tabkind_for_you">Sua seleção</string>
     <string name="tabkind_trending">Mais cobertas agora</string>
@@ -207,7 +218,7 @@
     <string name="foryou_terms_sub">Notícias com estas palavras entram no Para você.</string>
     <string name="foryou_terms_hint">ex.: Cruzeiro, IA</string>
     <string name="topics_shown_less">Tópicos exibidos menos</string>
-    <string name="topics_shown_less_sub">Definidos com \"Mostrar menos sobre…\" em uma notícia.</string>
+    <string name="topics_shown_less_sub">Para adicionar, abra o menu ⋮ de uma notícia (ou toque e segure nela) e escolha um tópico, nome ou veículo em \"Mostrar menos sobre\".</string>
     <string name="sources_blocked_less">Fontes bloqueadas e silenciadas</string>
     <string name="sources_blocked_less_sub">Fontes bloqueadas nunca aparecem. As silenciadas aparecem menos.</string>
     <string name="source_blocked">Bloqueada</string>

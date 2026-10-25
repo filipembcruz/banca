@@ -112,7 +112,7 @@ object RssParser {
         val google = link.contains("news.google.com")
         val html = Jsoup.parseBodyFragment(r.description.ifBlank { r.content })
 
-        val sourceName = r.source.ifBlank { cleanChannel(channel) }
+        val sourceName = r.source.ifBlank { friendlyName(hostOf(link), cleanChannel(channel)) }
         val title = Text.unescape(
             if (google && sourceName.isNotBlank()) r.title.removeSuffix(" - $sourceName") else r.title
         ).trim()
@@ -147,6 +147,28 @@ object RssParser {
             topic = topic,
             related = related,
         )
+    }
+
+    private val knownNames = mapOf(
+        "agenciabrasil.ebc.com.br" to "Agência Brasil",
+        "g1.globo.com" to "g1",
+        "tecnoblog.net" to "Tecnoblog",
+        "olhardigital.com.br" to "Olhar Digital",
+        "folha.uol.com.br" to "Folha de S.Paulo",
+        "www1.folha.uol.com.br" to "Folha de S.Paulo",
+        "estadao.com.br" to "Estadão",
+        "uol.com.br" to "UOL",
+    )
+
+    private val genericTitles = Regex("^(feed|rss|últimas|ultimas|notícias|noticias|home|news|latest)\\b.*", RegexOption.IGNORE_CASE)
+
+    /** Readable outlet name: a known name, the channel title, or the domain when the title is generic. */
+    private fun friendlyName(host: String?, channel: String): String {
+        host?.let { h -> knownNames[h]?.let { return it } }
+        if (channel.isBlank() || genericTitles.matches(channel)) {
+            return host?.substringBeforeLast('.')?.substringAfterLast('.')?.replaceFirstChar { it.uppercase() } ?: channel
+        }
+        return channel
     }
 
     private fun cleanChannel(t: String): String =

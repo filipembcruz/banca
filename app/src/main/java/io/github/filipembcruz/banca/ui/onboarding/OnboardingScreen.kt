@@ -70,6 +70,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.filipembcruz.banca.R
+import io.github.filipembcruz.banca.ui.components.ChipFlow
 import io.github.filipembcruz.banca.core.Format
 import io.github.filipembcruz.banca.core.LocaleHelper
 import io.github.filipembcruz.banca.data.model.Markets
@@ -305,7 +306,7 @@ private fun PlacesPage(app: AppViewModel, vm: SettingsViewModel) {
     val s = LocalSettings.current
     Column(Modifier.verticalScroll(rememberScrollState())) {
         Title(stringResource(R.string.onboarding_places), stringResource(R.string.onboarding_places_body))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        ChipFlow {
             s.places.forEach { p ->
                 InputChip(
                     selected = true,
@@ -328,7 +329,7 @@ private fun PlacesPage(app: AppViewModel, vm: SettingsViewModel) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
         )
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        ChipFlow {
             Markets.all.forEach { m ->
                 val on = m.id in s.markets
                 FilterChip(
@@ -365,11 +366,7 @@ private fun NotificationsStep(app: AppViewModel) {
             ask()
         }
         if (mode == 1) {
-            FlowRow(
-                Modifier.padding(top = 10.dp, start = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
+            ChipFlow(Modifier.padding(top = 10.dp, start = 8.dp)) {
                 listOf(7 * 60, 8 * 60, 12 * 60, 18 * 60, 21 * 60).forEach { t ->
                     val on = t in s.digestTimes
                     FilterChip(

@@ -47,6 +47,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.filipembcruz.banca.R
+import io.github.filipembcruz.banca.ui.components.ChipFlow
 import io.github.filipembcruz.banca.core.Format
 import io.github.filipembcruz.banca.data.model.Delivery
 import io.github.filipembcruz.banca.data.model.NotifStyle
@@ -117,11 +118,7 @@ fun NotificationsPage(app: AppViewModel, onBack: () -> Unit, navigate: (String) 
                 Divider()
                 Column(Modifier.padding(16.dp)) {
                     Text(stringResource(R.string.notif_digest_times), style = MaterialTheme.typography.bodyLarge)
-                    FlowRow(
-                        Modifier.padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
+                    ChipFlow(Modifier.padding(top = 8.dp)) {
                         s.digestTimes.sorted().forEach { t ->
                             InputChip(
                                 selected = true,
@@ -174,7 +171,7 @@ fun NotificationsPage(app: AppViewModel, onBack: () -> Unit, navigate: (String) 
             Group(stringResource(R.string.notif_refresh), footer = stringResource(R.string.notif_refresh_sub)) {
                 Column(Modifier.padding(16.dp)) {
                     Text(stringResource(R.string.notif_refresh_every), style = MaterialTheme.typography.bodyLarge)
-                    FlowRow(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ChipFlow(Modifier.padding(top = 8.dp)) {
                         listOf(15, 30, 60, 180, 0).forEach { m ->
                             FilterChip(
                                 selected = s.refreshMinutes == m,
@@ -276,14 +273,14 @@ private fun AddRuleSheet(app: AppViewModel, onDismiss: () -> Unit, onAdded: (Str
         Column(Modifier.navigationBarsPadding().padding(horizontal = 24.dp).padding(bottom = 24.dp)) {
             Text(stringResource(R.string.notif_add_rule), style = MaterialTheme.typography.headlineSmall)
             Spacer(Modifier.height(12.dp))
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ChipFlow {
                 RuleKind.entries.forEach { k ->
                     FilterChip(selected = kind == k, onClick = { kind = k; text = "" }, label = { Text(stringResource(kindLabel(k))) })
                 }
             }
             Spacer(Modifier.height(12.dp))
             when (kind) {
-                RuleKind.TOPIC -> FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                RuleKind.TOPIC -> ChipFlow {
                     Topics.all.forEach { t ->
                         val label = stringResource(Labels.topicRes(t.id)!!)
                         FilterChip(
@@ -294,7 +291,7 @@ private fun AddRuleSheet(app: AppViewModel, onDismiss: () -> Unit, onAdded: (Str
                         )
                     }
                 }
-                RuleKind.PLACE -> FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                RuleKind.PLACE -> ChipFlow {
                     if (s.places.isEmpty()) Text(stringResource(R.string.rule_no_places))
                     s.places.forEach { p ->
                         FilterChip(selected = false, onClick = { add(RuleKind.PLACE, p.name, p.name) }, label = { Text(p.name) },

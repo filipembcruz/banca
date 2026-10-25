@@ -1,6 +1,14 @@
 package io.github.filipembcruz.banca.ui.home
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.runtime.saveable.rememberSaveable
+import io.github.filipembcruz.banca.ui.components.WeatherScene
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -69,14 +77,16 @@ import io.github.filipembcruz.banca.ui.theme.LocalExtras
 fun WeatherCard(places: List<Place>, weather: Map<String, Weather>, onClick: () -> Unit, modifier: Modifier = Modifier) {
     if (places.isEmpty()) return
     val pager = rememberPagerState { places.size }
+    // Compact by default; a tap opens the forecast. Shared by every place in the pager.
+    var expanded by rememberSaveable { mutableStateOf(false) }
     Column(modifier) {
-        HorizontalPager(state = pager, pageSpacing = 12.dp) { page ->
+        HorizontalPager(state = pager, pageSpacing = 12.dp, verticalAlignment = Alignment.Top) { page ->
             val p = places[page]
             val w = weather[p.key]
             if (w == null) {
-                Box(Modifier.fillMaxWidth().height(156.dp).shimmer(RoundedCornerShape(24.dp)))
+                Box(Modifier.fillMaxWidth().height(76.dp).shimmer(RoundedCornerShape(24.dp)))
             } else {
-                WeatherPanel(w, onClick)
+                WeatherPanel(w, expanded, onToggle = { expanded = !expanded }, onSettings = onClick)
             }
         }
         if (places.size > 1) {
@@ -86,7 +96,7 @@ fun WeatherCard(places: List<Place>, weather: Map<String, Weather>, onClick: () 
 }
 
 @Composable
-private fun WeatherPanel(w: Weather, onClick: () -> Unit) {
+private fun WeatherPanel(w: Weather, expanded: Boolean, onToggle: () -> Unit, onSettings: () -> Unit) {
     val s = LocalSettings.current
     val dark = LocalExtras.current.dark
     val reduced = LocalExtras.current.reducedMotion
@@ -95,61 +105,86 @@ private fun WeatherPanel(w: Weather, onClick: () -> Unit) {
     LaunchedEffect(w.temp) {
         temp.animateTo(w.temp.toFloat(), tween(if (reduced) 0 else 900, easing = FastOutSlowInEasing))
     }
-    Column(
+    val today = w.days.firstOrNull()
+    Box(
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
             .background(Brush.linearGradient(colors))
-            .clickable(onClick = onClick)
-            .padding(18.dp)
+            .clickable(onClick = onToggle)
+            .animateContentSize(spring(stiffness = Spring.StiffnessMediumLow))
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(w.place.name, style = MaterialTheme.typography.titleMedium, color = Color.White)
+        WeatherScene(w.code, w.isDay, Modifier.matchParentSize())
+        Column(Modifier.padding(horizontal = 18.dp, vertical = 14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(WeatherText.icon(w.code, w.isDay), null, tint = Color.White, modifier = Modifier.size(30.dp))
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(w.place.name, style = MaterialTheme.typography.titleMedium, color = Color.White, maxLines = 1)
+                    Text(
+                        stringResource(WeatherText.label(w.code)) +
+                            (today?.let { "  ·  ${Format.temp(it.max, s.fahrenheit)} / ${Format.temp(it.min, s.fahrenheit)}" } ?: ""),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.85f),
+                        maxLines = 1,
+                    )
+                }
                 Text(
-                    stringResource(WeatherText.label(w.code)),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.85f),
+                    Format.temp(temp.value.toDouble(), s.fahrenheit),
+                    fontSize = if (expanded) 44.sp else 32.sp,
+                    fontWeight = FontWeight.Light,
+                    color = Color.White,
                 )
             }
-            Icon(WeatherText.icon(w.code, w.isDay), null, tint = Color.White, modifier = Modifier.size(40.dp))
-            Spacer(Modifier.width(10.dp))
-            Text(
-                Format.temp(temp.value.toDouble(), s.fahrenheit),
-                fontSize = 44.sp,
-                fontWeight = FontWeight.Light,
-                color = Color.White,
-            )
-        }
-        Spacer(Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                stringResource(R.string.weather_feels, Format.temp(w.feelsLike, s.fahrenheit)),
-                style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.85f),
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Rounded.Air, null, tint = Color.White.copy(alpha = 0.85f), modifier = Modifier.size(14.dp))
-                Spacer(Modifier.width(4.dp))
-                Text(Format.wind(w.wind, s.mph), style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.85f))
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Rounded.WaterDrop, null, tint = Color.White.copy(alpha = 0.85f), modifier = Modifier.size(14.dp))
-                Spacer(Modifier.width(4.dp))
-                Text("${w.humidity}%", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.85f))
-            }
-        }
-        Spacer(Modifier.height(12.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            w.days.take(5).forEachIndexed { i, d ->
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(spring(stiffness = Spring.StiffnessMediumLow)) + fadeIn(),
+                exit = shrinkVertically(spring(stiffness = Spring.StiffnessMediumLow)) + fadeOut(),
+            ) {
+                Column {
+                    Spacer(Modifier.height(12.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            stringResource(R.string.weather_feels, Format.temp(w.feelsLike, s.fahrenheit)),
+                            style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.85f),
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Rounded.Air, null, tint = Color.White.copy(alpha = 0.85f), modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(Format.wind(w.wind, s.mph), style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.85f))
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Rounded.WaterDrop, null, tint = Color.White.copy(alpha = 0.85f), modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("${w.humidity}%", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.85f))
+                        }
+                    }
+                    Spacer(Modifier.height(14.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        w.days.take(5).forEachIndexed { i, d ->
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    if (i == 0) stringResource(R.string.weather_today) else Format.dayName(d.date),
+                                    style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.8f),
+                                )
+                                Icon(WeatherText.icon(d.code), null, tint = Color.White, modifier = Modifier.padding(vertical = 6.dp).size(22.dp))
+                                Text(
+                                    "${Format.temp(d.max, s.fahrenheit)} ${Format.temp(d.min, s.fahrenheit)}",
+                                    style = MaterialTheme.typography.labelSmall, color = Color.White,
+                                )
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(6.dp))
                     Text(
-                        if (i == 0) stringResource(R.string.weather_today) else Format.dayName(d.date),
-                        style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.8f),
-                    )
-                    Icon(WeatherText.icon(d.code), null, tint = Color.White, modifier = Modifier.padding(vertical = 4.dp).size(20.dp))
-                    Text(
-                        "${Format.temp(d.max, s.fahrenheit)} ${Format.temp(d.min, s.fahrenheit)}",
-                        style = MaterialTheme.typography.labelSmall, color = Color.White,
+                        stringResource(R.string.weather_manage),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.White,
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .clip(RoundedCornerShape(50))
+                            .clickable(onClick = onSettings)
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
                     )
                 }
             }

@@ -19,6 +19,12 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.graphics.graphicsLayer
+import io.github.filipembcruz.banca.ui.components.ImageViewer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -329,7 +335,10 @@ internal fun ReaderBody(
     val settings = LocalSettings.current
     val context = LocalContext.current
     val listState = rememberLazyListState()
-    val image = (body as? ReaderViewModel.Body.Ready)?.content?.image ?: rememberArticleImage(a)
+    val cardImage = rememberArticleImage(a).url
+    val image = (body as? ReaderViewModel.Body.Ready)?.content?.image ?: cardImage
+    var viewing by remember { mutableStateOf(false) }
+    val pad = Modifier.padding(horizontal = 20.dp)
     val textColor = MaterialTheme.colorScheme.onSurface
     val style = readerStyle(settings.serifReader, settings.textScale, textColor)
 
@@ -349,9 +358,10 @@ internal fun ReaderBody(
 
     LazyColumn(
         state = listState,
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 40.dp),
+        contentPadding = PaddingValues(bottom = 40.dp),
         modifier = Modifier.fillMaxSize(),
     ) {
+        // Full-bleed picture with a gentle parallax; the text card slides up over it.
         item(key = "image") {
             if (image != null) {
                 AsyncImage(
@@ -361,14 +371,26 @@ internal fun ReaderBody(
                     modifier = Modifier
                         .sharedImage(sharedKey)
                         .fillMaxWidth()
-                        .aspectRatio(16 / 9f)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                        .aspectRatio(4 / 3f)
+                        .graphicsLayer {
+                            if (listState.firstVisibleItemIndex == 0) {
+                                translationY = listState.firstVisibleItemScrollOffset * 0.45f
+                            }
+                        }
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .clickable { viewing = true },
                 )
-                Spacer(Modifier.height(18.dp))
             }
         }
         item(key = "title") {
+            Column(
+                Modifier
+                    .then(if (image != null) Modifier.offset(y = (-28).dp) else Modifier)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(start = 20.dp, end = 20.dp, top = 24.dp)
+            ) {
             val title = (body as? ReaderViewModel.Body.Ready)?.content?.title?.takeIf { it.length > 10 } ?: a.title
             Text(
                 title,
@@ -391,16 +413,17 @@ internal fun ReaderBody(
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.height(20.dp))
+            }
+            Spacer(Modifier.height(if (image != null) 0.dp else 20.dp))
         }
         when (body) {
             is ReaderViewModel.Body.Loading -> item(key = "loading") {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(pad, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     repeat(7) { i -> Box(Modifier.fillMaxWidth(if (i % 3 == 2) 0.6f else 1f).height(16.dp).shimmer()) }
                 }
             }
             is ReaderViewModel.Body.Failed -> item(key = "failed") {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp)) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = pad.fillMaxWidth().padding(vertical = 24.dp)) {
                     Text(
                         stringResource(R.string.reader_unavailable),
                         style = MaterialTheme.typography.bodyLarge,
@@ -412,15 +435,15 @@ internal fun ReaderBody(
             }
             is ReaderViewModel.Body.Ready -> {
                 items(body.content.blocks) { b ->
-                    SelectionContainer {
+                    SelectionContainer(pad) {
                         when {
                             b.heading -> Text(
                                 b.text,
                                 style = style.copy(fontWeight = FontWeight.Bold, fontSize = style.fontSize * 1.1f),
                                 modifier = Modifier.padding(top = 10.dp, bottom = 10.dp),
                             )
-                            b.quote -> Row(Modifier.padding(vertical = 10.dp)) {
-                                Box(Modifier.width(3.dp).height(48.dp).background(MaterialTheme.colorScheme.primary))
+                            b.quote -> Row(Modifier.padding(vertical = 10.dp).height(IntrinsicSize.Min)) {
+                                Box(Modifier.width(3.dp).fillMaxHeight().clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary))
                                 Spacer(Modifier.width(14.dp))
                                 Text(b.text, style = style.copy(fontStyle = FontStyle.Italic))
                             }
@@ -430,7 +453,7 @@ internal fun ReaderBody(
                 }
                 item(key = "source") {
                     Spacer(Modifier.height(8.dp))
-                    OutlinedButton(onClick = onOpenWeb, modifier = Modifier.fillMaxWidth()) {
+                    OutlinedButton(onClick = onOpenWeb, modifier = pad.fillMaxWidth()) {
                         Text(stringResource(R.string.reader_read_on, a.source))
                     }
                 }
@@ -438,12 +461,15 @@ internal fun ReaderBody(
         }
         if (a.related.isNotEmpty()) {
             item(key = "coverage") {
-                Spacer(Modifier.height(28.dp))
-                Text(stringResource(R.string.reader_other_coverage), style = MaterialTheme.typography.titleMedium)
-                RelatedList(a)
+                Column(pad) {
+                    Spacer(Modifier.height(28.dp))
+                    Text(stringResource(R.string.reader_other_coverage), style = MaterialTheme.typography.titleMedium)
+                    RelatedList(a)
+                }
             }
         }
     }
+    if (viewing && image != null) ImageViewer(image) { viewing = false }
 }
 
 @SuppressLint("SetJavaScriptEnabled")

@@ -45,6 +45,36 @@ object Text {
         return md.take(10).joinToString("") { "%02x".format(it) }
     }
 
+    private val connectors = setOf("de", "da", "do", "das", "dos", "e", "of", "the")
+
+    /**
+     * Names and key words from a headline for "Show less about…": runs of capitalised words
+     * first ("Flávio Bolsonaro"), then the longest meaningful words.
+     */
+    fun keyPhrases(title: String, max: Int = 3): List<String> {
+        val words = title.replace(Regex("[\"“”‘’:;,.!?()]"), " ").split(' ').filter { it.isNotBlank() }
+        val phrases = mutableListOf<String>()
+        var run = mutableListOf<String>()
+        fun flush() {
+            while (run.isNotEmpty() && run.last().lowercase() in connectors) run.removeAt(run.lastIndex)
+            if (run.size >= 2 || (run.size == 1 && run[0].length >= 4)) phrases += run.joinToString(" ")
+            run = mutableListOf()
+        }
+        words.forEachIndexed { i, w ->
+            val cap = w.first().isUpperCase() && w.any { it.isLowerCase() }
+            val acronym = w.length in 2..6 && w.all { it.isUpperCase() || it.isDigit() } && w.any { it.isLetter() }
+            when {
+                (cap && i > 0) || acronym -> run.add(w)
+                run.isNotEmpty() && w.lowercase() in connectors -> run.add(w)
+                else -> flush()
+            }
+        }
+        flush()
+        val extra = words.map { it.lowercase() }.filter { it.length >= 6 && fold(it) !in stopwords }
+            .sortedByDescending { it.length }
+        return (phrases + extra).distinctBy { fold(it) }.take(max)
+    }
+
     /** Cuts at a sentence end near [max] characters. */
     fun clip(s: String, max: Int): String {
         if (s.length <= max) return s

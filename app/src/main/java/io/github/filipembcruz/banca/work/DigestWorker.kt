@@ -34,6 +34,8 @@ class DigestWorker(context: Context, params: WorkerParameters) : CoroutineWorker
                 }
             }
             if (items.isNotEmpty()) {
+                items.forEach { c.store.putTransient("digest", it) }
+                c.store.addDigest(items.map { it.id })
                 Notifier.digest(applicationContext, items, weatherLine)
                 items.forEach { c.store.markNotified(it.id, "digest", pending = false) }
             }

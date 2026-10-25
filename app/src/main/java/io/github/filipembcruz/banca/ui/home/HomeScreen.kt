@@ -90,7 +90,7 @@ import kotlin.math.abs
 import kotlinx.coroutines.launch
 
 @Composable
-fun HomeScreen(vm: HomeViewModel, bottomPadding: androidx.compose.ui.unit.Dp) {
+fun HomeScreen(vm: HomeViewModel, bottomPadding: androidx.compose.ui.unit.Dp, onPlace: (String) -> Unit = {}) {
     val settings = LocalSettings.current
     val tabs = settings.tabs
     val pager = rememberPagerState { tabs.size }
@@ -116,11 +116,21 @@ fun HomeScreen(vm: HomeViewModel, bottomPadding: androidx.compose.ui.unit.Dp) {
             key = { tabs.getOrNull(it)?.id ?: it },
             beyondViewportPageCount = 0,
         ) { page ->
-            val tab = tabs.getOrNull(page) ?: return@HorizontalPager
+            val baseTab = tabs.getOrNull(page) ?: return@HorizontalPager
+            // Local shows one place at a time, picked from chips at the top of the page.
+            val place = if (baseTab.type == TabType.LOCAL) {
+                settings.places.firstOrNull { it.key == settings.localPlace } ?: settings.places.firstOrNull()
+            } else null
+            val tab = if (place != null) TabDef("local:${place.key}", TabType.LOCAL, place.key) else baseTab
             val items by vm.feed(tab).collectAsStateWithLifecycle()
             LaunchedEffect(tab.id, tab.value) { vm.refresh(tab) }
+            val header: (@Composable () -> Unit)? =
+                if (baseTab.type == TabType.LOCAL && settings.places.size > 1) {
+                    { PlaceChips(settings.places, place?.key, onPlace) }
+                } else null
             FeedPage(
                 tab = tab,
+                header = header,
                 items = items,
                 refreshing = tab.id in refreshing,
                 failed = tab.id in failed,
@@ -191,8 +201,8 @@ internal fun HomeHeader(weather: Weather?) {
                 }
                 Spacer(Modifier.width(4.dp))
             }
-            IconButton(onClick = { actions.openSettings("settings/notifications") }) {
-                Icon(Icons.Rounded.NotificationsNone, stringResource(R.string.settings_notifications))
+            IconButton(onClick = { actions.openSettings("inbox") }) {
+                Icon(Icons.Rounded.NotificationsNone, stringResource(R.string.inbox_title))
             }
         }
         Spacer(Modifier.height(14.dp))
@@ -213,7 +223,6 @@ internal fun HomeHeader(weather: Weather?) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
                 )
-                Icon(Icons.Rounded.Tune, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
             }
         }
         Spacer(Modifier.height(8.dp))
@@ -297,6 +306,7 @@ fun FeedPage(
     marketNews: List<FeedItem>,
     onMarket: (MarketDef) -> Unit,
     bottomPadding: androidx.compose.ui.unit.Dp,
+    header: (@Composable () -> Unit)? = null,
 ) {
     val settings = LocalSettings.current
     val actions = LocalActions.current
@@ -314,6 +324,8 @@ fun FeedPage(
             val top = if (forYou) list.filter { it.article.image != null || it.article.related.size >= 2 }.take(5) else emptyList()
             val topIds = top.map { it.article.id }.toSet()
             val rest = if (forYou) list.filter { it.article.id !in topIds } else list
+
+            if (header != null) item(key = "header") { header() }
 
             if (forYou) {
                 settings.blocks.filter { it.visible }.forEach { pref ->
@@ -431,5 +443,33 @@ private fun Appear(id: String, index: Int, seen: HashSet<String>, modifier: Modi
             slideInVertically(tween(380, delayMillis = (index.coerceAtMost(8)) * 40)) { it / 5 },
     ) {
         content()
+    }
+}
+
+/** Chips to switch the Local tab between places, in the order set in Settings. */
+@Composable
+fun PlaceChips(places: List<io.github.filipembcruz.banca.data.model.Place>, selected: String?, onSelect: (String) -> Unit) {
+    val actions = LocalActions.current
+    Box(Modifier.requiredWidth(LocalConfiguration.current.screenWidthDp.dp)) {
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+        ) {
+            items(places, key = { it.key }) { p ->
+                androidx.compose.material3.FilterChip(
+                    selected = p.key == selected,
+                    onClick = { onSelect(p.key) },
+                    label = { Text(p.name, maxLines = 1) },
+                    shape = RoundedCornerShape(50),
+                )
+            }
+            item(key = "edit") {
+                IconButton(onClick = { actions.openSettings("settings/places") }) {
+                    Icon(Icons.Rounded.Tune, stringResource(R.string.settings_places), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
     }
 }

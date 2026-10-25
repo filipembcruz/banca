@@ -32,6 +32,10 @@ data class AppSettings(
     val topics: Set<String> = Topics.defaultFollowed,
     val terms: List<String> = emptyList(),
     val recentSearches: List<String> = emptyList(),
+    /** Hide stories older than this many hours (0 = no limit). */
+    val maxAgeHours: Int = 48,
+    /** Last chosen place on the Local tab. */
+    val localPlace: String = "",
 
     // Places and weather
     val places: List<Place> = listOf(DEFAULT_PLACE),
@@ -101,6 +105,8 @@ object SettingsJson {
         put("topics", JSONArray(s.topics.toList()))
         put("terms", JSONArray(s.terms))
         put("recentSearches", JSONArray(s.recentSearches))
+        put("maxAgeHours", s.maxAgeHours)
+        put("localPlace", s.localPlace)
         put("places", JSONArray(s.places.map { placeToJson(it) }))
         put("fahrenheit", s.fahrenheit)
         put("mph", s.mph)
@@ -161,6 +167,8 @@ object SettingsJson {
                 topics = o.optJSONArray("topics")?.strings()?.toSet() ?: d.topics,
                 terms = o.optJSONArray("terms")?.strings() ?: d.terms,
                 recentSearches = o.optJSONArray("recentSearches")?.strings() ?: d.recentSearches,
+                maxAgeHours = o.optInt("maxAgeHours", d.maxAgeHours),
+                localPlace = o.optString("localPlace", d.localPlace),
                 places = o.optJSONArray("places")?.objects()?.mapNotNull { placeFromJson(it) } ?: d.places,
                 fahrenheit = o.optBoolean("fahrenheit", d.fahrenheit),
                 mph = o.optBoolean("mph", d.mph),

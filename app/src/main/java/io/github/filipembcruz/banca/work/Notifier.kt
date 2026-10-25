@@ -32,6 +32,7 @@ object Notifier {
     const val CH_DIGEST = "digest"
     const val CH_FOLLOWING = "following"
     const val EXTRA_ARTICLE = "article_id"
+    const val EXTRA_INBOX = "open_inbox"
     private const val DIGEST_ID = 4100
 
     fun createChannels(context: Context) {
@@ -77,7 +78,8 @@ object Notifier {
     private fun openIntent(context: Context, articleId: String?, requestCode: Int): PendingIntent {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            if (articleId != null) putExtra(EXTRA_ARTICLE, articleId)
+            // A tap on a single story opens it; a tap on a digest or a group opens the inbox.
+            if (articleId != null) putExtra(EXTRA_ARTICLE, articleId) else putExtra(EXTRA_INBOX, true)
         }
         return PendingIntent.getActivity(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     }

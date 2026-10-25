@@ -21,6 +21,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BookmarkBorder
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.ui.graphics.Color
+import io.github.filipembcruz.banca.ui.theme.LocalExtras
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -90,6 +97,10 @@ fun SavedScreen(vm: SavedViewModel, app: AppViewModel, bottomPadding: androidx.c
     val history by vm.history.collectAsStateWithLifecycle()
     var mode by rememberSaveable { mutableStateOf(0) }
     var filter by rememberSaveable { mutableStateOf<String?>(null) }
+    var query by rememberSaveable { mutableStateOf("") }
+    val q = io.github.filipembcruz.banca.core.Text.fold(query.trim())
+    fun matches(title: String, source: String) =
+        q.isEmpty() || io.github.filipembcruz.banca.core.Text.fold("$title $source").contains(q)
 
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.statusBarsPadding().padding(horizontal = 20.dp).padding(top = 12.dp)) {
@@ -103,12 +114,31 @@ fun SavedScreen(vm: SavedViewModel, app: AppViewModel, bottomPadding: androidx.c
                     Text(stringResource(R.string.saved_tab_history))
                 }
             }
+            TextField(
+                value = query,
+                onValueChange = { query = it },
+                placeholder = { Text(stringResource(if (mode == 0) R.string.saved_search_hint else R.string.history_search_hint)) },
+                leadingIcon = { Icon(Icons.Rounded.Search, null) },
+                trailingIcon = {
+                    if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Icon(Icons.Rounded.Close, stringResource(R.string.action_clear)) }
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(50),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = LocalExtras.current.card,
+                    unfocusedContainerColor = LocalExtras.current.card,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                ),
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+            )
         }
 
         if (mode == 0) {
             val list = saved.orEmpty()
             val topics = list.mapNotNull { it.article.topic }.distinct()
-            val shown = if (filter == null) list else list.filter { it.article.topic == filter }
+            val shown = (if (filter == null) list else list.filter { it.article.topic == filter })
+                .filter { matches(it.article.title, it.article.source) }
             LazyColumn(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomPadding + 24.dp),
                 modifier = Modifier.fillMaxSize(),
@@ -143,7 +173,7 @@ fun SavedScreen(vm: SavedViewModel, app: AppViewModel, bottomPadding: androidx.c
                         TextButton(onClick = { vm.clearHistory() }) { Text(stringResource(R.string.action_clear_history)) }
                     }
                 }
-                items(history, key = { "h-" + it.id }) { h ->
+                items(history.filter { matches(it.title, it.source) }, key = { "h-" + it.id }) { h ->
                     val fi = FeedItem(
                         Article(id = h.id, title = h.title, link = h.link, realLink = h.link, source = h.source, domain = h.domain,
                             published = h.openedAt, image = h.image),

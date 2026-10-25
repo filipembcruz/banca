@@ -32,7 +32,7 @@ private object Publishers {
         "world" to listOf("https://g1.globo.com/rss/g1/mundo/"),
         "politics" to listOf("https://g1.globo.com/rss/g1/politica/"),
         "business" to listOf("https://g1.globo.com/rss/g1/economia/"),
-        "technology" to listOf("https://g1.globo.com/rss/g1/tecnologia/"),
+        "technology" to listOf("https://tecnoblog.net/feed/", "https://olhardigital.com.br/feed/"),
         "entertainment" to listOf("https://g1.globo.com/rss/g1/pop-arte/"),
         "cars" to listOf("https://g1.globo.com/rss/g1/carros/"),
     )
@@ -59,7 +59,9 @@ object FeedCatalog {
 
     fun forPlace(fallback: Edition, p: Place): FeedUrl {
         val e = Editions.forCountry(p.countryCode, fallback)
-        return FeedUrl(GoogleNews.search(e, "\"${p.name}\"", "3d"), "place:${p.name}")
+        // A city name alone can match people or other places; the region narrows it down.
+        val q = if (p.admin.isNotBlank() && p.admin != p.name) "\"${p.name}\" ${p.admin}" else "\"${p.name}\""
+        return FeedUrl(GoogleNews.search(e, q, "3d"), "place:${p.name}")
     }
 
     fun forTerm(e: Edition, term: String, window: String? = "2d"): FeedUrl =

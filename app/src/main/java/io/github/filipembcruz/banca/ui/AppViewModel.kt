@@ -74,6 +74,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun showLessTerm(term: String) {
+        viewModelScope.launch {
+            val prev = news.showLessTerm(term)
+            say(R.string.msg_less_topic, term, undo = { viewModelScope.launch { news.setTopicWeight("term:" + io.github.filipembcruz.banca.core.Text.fold(term), prev) } })
+        }
+    }
+
     fun showLessSource(a: Article) {
         val domain = a.domain ?: a.source
         viewModelScope.launch {

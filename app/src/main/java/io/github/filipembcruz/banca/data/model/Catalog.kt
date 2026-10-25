@@ -80,7 +80,6 @@ object Editions {
         Edition("BR", "pt-BR", "BR", "BR:pt-419", true),
         Edition("PT", "pt-PT", "PT", "PT:pt-150", true),
         Edition("US", "en-US", "US", "US:en", false),
-        Edition("GB", "en-GB", "GB", "GB:en", false),
     )
 
     fun byId(id: String): Edition = all.firstOrNull { it.id == id } ?: all.first()

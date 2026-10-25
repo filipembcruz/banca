@@ -198,6 +198,45 @@ fun SliderItem(
     }
 }
 
+/** A row inside a reorderable list: drag handle on the right, optional action before it. */
+@Composable
+fun ReorderRow(
+    title: String,
+    subtitle: String? = null,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    dragging: Boolean,
+    handle: Modifier,
+    dimmed: Boolean = false,
+    leading: (@Composable () -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    val bg = if (dragging) MaterialTheme.colorScheme.surfaceContainerHigh else LocalExtras.current.card
+    Surface(shape = RoundedCornerShape(18.dp), color = bg) {
+        Row(
+            Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (leading != null) leading() else if (icon != null) {
+                Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f).padding(vertical = 8.dp)) {
+                Text(
+                    title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    color = if (dimmed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                )
+                if (subtitle != null) {
+                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                }
+            }
+            trailing?.invoke()
+            Box(Modifier.size(44.dp).then(handle), contentAlignment = Alignment.Center) {
+                io.github.filipembcruz.banca.ui.components.DragHandle(Modifier)
+            }
+        }
+    }
+}
+
 @Composable
 fun Divider() {
     HorizontalDivider(Modifier.padding(start = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))

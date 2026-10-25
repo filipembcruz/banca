@@ -11,6 +11,8 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -66,17 +68,30 @@ import io.github.filipembcruz.banca.ui.nav.LocalActions
 import io.github.filipembcruz.banca.ui.nav.LocalSettings
 import io.github.filipembcruz.banca.ui.nav.sharedImage
 
-/** Picture for a card: the feed's own, or one resolved in the background. */
+/** Picture for a card plus a fallback hook for when the picture fails to load. */
+class CardImage(val url: String?, val onError: () -> Unit)
+
+/**
+ * Picture for a card: the feed's own, or the publisher page's share image resolved in the
+ * background. If the feed's picture fails to load, the share image is tried once; if that fails
+ * too, the card drops the picture instead of showing an empty box.
+ */
 @Composable
-fun rememberArticleImage(a: Article): String? {
+fun rememberArticleImage(a: Article): CardImage {
     val actions = LocalActions.current
     val settings = LocalSettings.current
     val context = LocalContext.current
     val allowed = remember(settings.imagesWifiOnly) { !settings.imagesWifiOnly || !Format.isMetered(context) }
-    val img by produceState(initialValue = a.image, a.id, allowed) {
-        if (value == null && allowed) value = runCatching { actions.image(a) }.getOrNull()
+    var attempt by remember(a.id) { mutableIntStateOf(0) }
+    val img by produceState(initialValue = a.image, a.id, allowed, attempt) {
+        value = when {
+            !allowed -> null
+            attempt == 0 -> a.image ?: runCatching { actions.image(a) }.getOrNull()
+            attempt == 1 -> runCatching { actions.image(a.copy(image = null)) }.getOrNull()?.takeIf { it != a.image }
+            else -> null
+        }
     }
-    return if (allowed) img else null
+    return CardImage(img) { if (attempt < 2) attempt++ }
 }
 
 @Composable
@@ -119,8 +134,10 @@ fun ArticleRow(
     val a = item.article
     val actions = LocalActions.current
     val settings = LocalSettings.current
-    val image = rememberArticleImage(a)
+    val picture = rememberArticleImage(a)
+    val image = picture.url
     var expanded by rememberSaveable(a.id) { mutableStateOf(false) }
+    var viewing by remember { mutableStateOf(false) }
 
     Column(modifier.fillMaxWidth()) {
         Column(
@@ -173,11 +190,13 @@ fun ArticleRow(
                             model = image,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
+                            onError = { picture.onError() },
                             modifier = Modifier
                                 .sharedImage(sharedKey)
                                 .size(88.dp)
                                 .clip(RoundedCornerShape(14.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .clickable { viewing = true },
                         )
                     }
                 }
@@ -218,6 +237,7 @@ fun ArticleRow(
         }
         if (divider) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
     }
+    if (viewing && image != null) ImageViewer(image) { viewing = false }
 }
 
 @Composable
@@ -261,7 +281,8 @@ fun HeroCard(
 ) {
     val a = item.article
     val actions = LocalActions.current
-    val image = rememberArticleImage(a)
+    val picture = rememberArticleImage(a)
+    val image = picture.url
     val fallback = remember(a.source) { avatarColor(a.source) }
     Box(
         modifier
@@ -280,6 +301,7 @@ fun HeroCard(
                 model = image,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
+                onError = { picture.onError() },
                 modifier = Modifier
                     .sharedImage(sharedKey)
                     .fillMaxSize(),

@@ -31,6 +31,9 @@ class MainActivity : ComponentActivity() {
     /** Article requested by a notification tap; consumed by the navigation host. */
     val pendingArticle = mutableStateOf<String?>(null)
 
+    /** Set when a digest or grouped notification is tapped. */
+    val pendingInbox = mutableStateOf(false)
+
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(LocaleHelper.wrap(newBase))
     }
@@ -55,7 +58,7 @@ class MainActivity : ComponentActivity() {
                     )
                 }
                 Box(Modifier.fillMaxSize().background(bg)) {
-                    BancaNav(app, s, pendingArticle)
+                    BancaNav(app, s, pendingArticle, pendingInbox)
                 }
             }
         }
@@ -67,6 +70,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
+        if (intent?.getBooleanExtra(Notifier.EXTRA_INBOX, false) == true) {
+            pendingInbox.value = true
+            intent.removeExtra(Notifier.EXTRA_INBOX)
+        }
         val id = intent?.getStringExtra(Notifier.EXTRA_ARTICLE) ?: return
         pendingArticle.value = id
         intent.removeExtra(Notifier.EXTRA_ARTICLE)

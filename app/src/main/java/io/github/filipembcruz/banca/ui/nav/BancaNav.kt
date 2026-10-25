@@ -2,6 +2,25 @@ package io.github.filipembcruz.banca.ui.nav
 
 import android.net.Uri
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.snap
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import io.github.filipembcruz.banca.ui.inbox.InboxScreen
+import io.github.filipembcruz.banca.ui.inbox.InboxViewModel
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.core.Spring
@@ -99,13 +118,12 @@ private data class Dest(val label: Int, val icon: ImageVector, val selectedIcon:
 
 private val dests = listOf(
     Dest(R.string.nav_home, Icons.Outlined.Home, Icons.Rounded.Home),
-    Dest(R.string.nav_explore, Icons.Outlined.Explore, Icons.Rounded.Explore),
     Dest(R.string.nav_saved, Icons.Outlined.BookmarkBorder, Icons.Rounded.Bookmark),
     Dest(R.string.nav_settings, Icons.Outlined.Settings, Icons.Rounded.Settings),
 )
 
 @Composable
-fun BancaNav(app: AppViewModel, settings: AppSettings, pendingArticle: MutableState<String?>) {
+fun BancaNav(app: AppViewModel, settings: AppSettings, pendingArticle: MutableState<String?>, pendingInbox: MutableState<Boolean>) {
     val nav = rememberNavController()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -113,7 +131,6 @@ fun BancaNav(app: AppViewModel, settings: AppSettings, pendingArticle: MutableSt
     val reduced = LocalExtras.current.reducedMotion
     var menuItem by remember { mutableStateOf<FeedItem?>(null) }
     var mainTab by rememberSaveable { mutableIntStateOf(0) }
-    var searchRequest by remember { mutableStateOf<Pair<String?, Long>?>(null) }
     val start = remember { if (settings.onboarded) "main" else "onboarding" }
 
     // Snackbars with Undo.
@@ -127,6 +144,15 @@ fun BancaNav(app: AppViewModel, settings: AppSettings, pendingArticle: MutableSt
                 duration = SnackbarDuration.Short,
             )
             if (result == SnackbarResult.ActionPerformed) m.undo?.invoke()
+        }
+    }
+
+    // Digest or grouped notification taps open the inbox.
+    val inbox = pendingInbox.value
+    LaunchedEffect(inbox, settings.onboarded) {
+        if (inbox && settings.onboarded) {
+            nav.navigate("inbox") { launchSingleTop = true }
+            pendingInbox.value = false
         }
     }
 
@@ -155,9 +181,7 @@ fun BancaNav(app: AppViewModel, settings: AppSettings, pendingArticle: MutableSt
             toggleSave = { app.toggleSave(it) },
             openSettings = { route -> nav.navigate(route) { launchSingleTop = true } },
             openSearch = { q ->
-                searchRequest = q to System.currentTimeMillis()
-                mainTab = 1
-                if (nav.currentDestination?.route != "main") nav.popBackStack("main", inclusive = false)
+                nav.navigate(if (q.isNullOrBlank()) "search" else "search?q=" + Uri.encode(q)) { launchSingleTop = true }
             },
             back = { nav.popBackStack() },
             image = { a -> app.news.image(a) },
@@ -198,7 +222,6 @@ fun BancaNav(app: AppViewModel, settings: AppSettings, pendingArticle: MutableSt
                                     tab = mainTab,
                                     onTab = { mainTab = it },
                                     app = app,
-                                    searchRequest = searchRequest,
                                     navigate = { nav.navigate(it) { launchSingleTop = true } },
                                 )
                             }
@@ -218,6 +241,20 @@ fun BancaNav(app: AppViewModel, settings: AppSettings, pendingArticle: MutableSt
                             val shared = entry.arguments?.getString("shared")
                             CompositionLocalProvider(LocalAnimScope provides this) {
                                 ReaderScreen(vm, app, shared)
+                            }
+                        }
+                        composable(
+                            "search?q={q}",
+                            arguments = listOf(navArgument("q") { type = NavType.StringType; nullable = true; defaultValue = null }),
+                        ) { entry ->
+                            val evm: ExploreViewModel = viewModel()
+                            val q = entry.arguments?.getString("q")
+                            ExploreScreen(evm, app, initialQuery = q, focusSearch = q == null, onBack = { nav.popBackStack() })
+                        }
+                        composable("inbox") {
+                            val ivm: InboxViewModel = viewModel()
+                            CompositionLocalProvider(LocalAnimScope provides this) {
+                                InboxScreen(ivm, onBack = { nav.popBackStack() }, onSettings = { nav.navigate("settings/notifications") })
                             }
                         }
                         composable("settings/tabs") { TabsPage(app) { nav.popBackStack() } }
@@ -257,7 +294,7 @@ fun BancaNav(app: AppViewModel, settings: AppSettings, pendingArticle: MutableSt
                 Modifier
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
-                    .padding(bottom = 76.dp),
+                    .padding(bottom = 100.dp),
             )
         }
 
@@ -272,45 +309,16 @@ private fun MainScreen(
     tab: Int,
     onTab: (Int) -> Unit,
     app: AppViewModel,
-    searchRequest: Pair<String?, Long>?,
     navigate: (String) -> Unit,
 ) {
     val homeVm: HomeViewModel = viewModel()
-    val exploreVm: ExploreViewModel = viewModel()
     val savedVm: SavedViewModel = viewModel()
     val holder = rememberSaveableStateHolder()
     val reduced = LocalExtras.current.reducedMotion
+    val navInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val bottom: Dp = navInset + 92.dp
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
-        bottomBar = {
-            NavigationBar(containerColor = LocalExtras.current.card, tonalElevation = 0.dp) {
-                dests.forEachIndexed { i, d ->
-                    val selected = tab == i
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = { onTab(i) },
-                        icon = {
-                            AnimatedContent(selected, transitionSpec = {
-                                (scaleIn(initialScale = 0.7f) + fadeIn()) togetherWith (scaleOut(targetScale = 0.7f) + fadeOut())
-                            }, label = "navIcon") { sel ->
-                                Icon(if (sel) d.selectedIcon else d.icon, null)
-                            }
-                        },
-                        label = { Text(stringResource(d.label)) },
-                        alwaysShowLabel = false,
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.primary,
-                            selectedTextColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                        ),
-                    )
-                }
-            }
-        },
-    ) { pad ->
-        val bottom: Dp = pad.calculateBottomPadding()
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         AnimatedContent(
             targetState = tab,
             transitionSpec = {
@@ -318,8 +326,8 @@ private fun MainScreen(
                 else {
                     val dir = if (targetState > initialState) AnimatedContentTransitionScope.SlideDirection.Left
                     else AnimatedContentTransitionScope.SlideDirection.Right
-                    (fadeIn(tween(220)) + slideIntoContainer(dir, tween(260)) { it / 10 }) togetherWith
-                        (fadeOut(tween(160)) + slideOutOfContainer(dir, tween(260)) { it / 10 })
+                    (fadeIn(tween(220)) + slideIntoContainer(dir, tween(280)) { it / 12 }) togetherWith
+                        (fadeOut(tween(160)) + slideOutOfContainer(dir, tween(280)) { it / 12 })
                 }
             },
             label = "mainTab",
@@ -327,15 +335,63 @@ private fun MainScreen(
         ) { t ->
             holder.SaveableStateProvider(t) {
                 when (t) {
-                    0 -> HomeScreen(homeVm, bottom)
-                    1 -> ExploreScreen(
-                        exploreVm, app,
-                        initialQuery = searchRequest?.first,
-                        focusSearch = searchRequest != null && searchRequest.first == null,
-                        bottomPadding = bottom,
-                    )
-                    2 -> SavedScreen(savedVm, app, bottom)
+                    0 -> HomeScreen(homeVm, bottom, onPlace = { key -> app.updateSettings { it.copy(localPlace = key) } })
+                    1 -> SavedScreen(savedVm, app, bottom)
                     else -> SettingsHome(navigate, bottom)
+                }
+            }
+        }
+        FloatingNav(
+            selected = tab,
+            onSelect = onTab,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = navInset + 12.dp),
+        )
+    }
+}
+
+/** Floating pill navigation: the selected item grows into a tinted capsule with its label. */
+@Composable
+private fun FloatingNav(selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
+    val reduced = LocalExtras.current.reducedMotion
+    Surface(
+        shape = RoundedCornerShape(32.dp),
+        color = LocalExtras.current.card,
+        shadowElevation = 14.dp,
+        tonalElevation = 0.dp,
+        modifier = modifier,
+    ) {
+        Row(Modifier.padding(6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+            dests.forEachIndexed { i, d ->
+                val isSel = i == selected
+                val bg by animateColorAsState(
+                    if (isSel) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else Color.Transparent, label = "navBg",
+                )
+                val fg by animateColorAsState(
+                    if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, label = "navFg",
+                )
+                Row(
+                    Modifier
+                        .clip(RoundedCornerShape(26.dp))
+                        .background(bg)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                        ) { onSelect(i) }
+                        .padding(horizontal = 18.dp, vertical = 12.dp)
+                        .animateContentSize(if (reduced) snap() else spring(stiffness = Spring.StiffnessMediumLow)),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    AnimatedContent(isSel, transitionSpec = {
+                        (scaleIn(initialScale = 0.7f) + fadeIn()) togetherWith (scaleOut(targetScale = 0.7f) + fadeOut())
+                    }, label = "navIcon") { sel ->
+                        Icon(if (sel) d.selectedIcon else d.icon, stringResource(d.label), tint = fg)
+                    }
+                    if (isSel) {
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(d.label), color = fg, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                    }
                 }
             }
         }
