@@ -174,7 +174,7 @@ private fun AddTabSheet(app: AppViewModel, onDismiss: () -> Unit) {
     var text by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
 
-    fun add(tab: TabDef) {
+    fun addTab(tab: TabDef) {
         app.updateSettings { st -> if (st.tabs.any { it.id == tab.id }) st else st.copy(tabs = st.tabs + tab) }
         onDismiss()
     }
@@ -193,7 +193,7 @@ private fun AddTabSheet(app: AppViewModel, onDismiss: () -> Unit) {
             Spacer(Modifier.height(16.dp))
             when (kind) {
                 0 -> FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    val builtIns = buildList<TabDef> {
+                    val builtIns = buildList {
                         if (s.tabs.none { it.type == TabType.TRENDING }) add(TabDef("trending", TabType.TRENDING))
                         if (s.tabs.none { it.type == TabType.LOCAL }) add(TabDef("local", TabType.LOCAL))
                         (listOf(Topics.SCITECH) + Topics.all.map { it.id }).forEach { id ->
@@ -203,7 +203,7 @@ private fun AddTabSheet(app: AppViewModel, onDismiss: () -> Unit) {
                     builtIns.forEach { tab ->
                         FilterChip(
                             selected = false,
-                            onClick = { add(tab) },
+                            onClick = { addTab(tab) },
                             label = { Text(tabTitle(tab)) },
                             leadingIcon = { Icon(tabIcon(tab), null, Modifier.size(18.dp)) },
                         )
@@ -222,7 +222,7 @@ private fun AddTabSheet(app: AppViewModel, onDismiss: () -> Unit) {
                         modifier = Modifier.padding(top = 6.dp),
                     )
                     Button(
-                        onClick = { add(TabDef("q-" + text.trim().lowercase().hashCode().toUInt().toString(16), TabType.SEARCH, text.trim(), text.trim())) },
+                        onClick = { addTab(TabDef("q-" + text.trim().lowercase().hashCode().toUInt().toString(16), TabType.SEARCH, text.trim(), text.trim())) },
                         enabled = text.isNotBlank(),
                         modifier = Modifier.padding(top = 12.dp).fillMaxWidth(),
                     ) { Text(stringResource(R.string.action_add)) }
@@ -242,7 +242,7 @@ private fun AddTabSheet(app: AppViewModel, onDismiss: () -> Unit) {
                     )
                     val url = text.trim().let { if (it.startsWith("http")) it else "https://$it" }
                     Button(
-                        onClick = { add(TabDef("rss-" + url.hashCode().toUInt().toString(16), TabType.FEED, url, name.trim().ifBlank { url.removePrefix("https://").substringBefore('/') })) },
+                        onClick = { addTab(TabDef("rss-" + url.hashCode().toUInt().toString(16), TabType.FEED, url, name.trim().ifBlank { url.removePrefix("https://").substringBefore('/') })) },
                         enabled = text.contains('.'),
                         modifier = Modifier.padding(top = 12.dp).fillMaxWidth(),
                     ) { Text(stringResource(R.string.action_add)) }

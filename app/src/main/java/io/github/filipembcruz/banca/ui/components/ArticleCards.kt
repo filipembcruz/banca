@@ -133,8 +133,30 @@ fun ArticleRow(
                 )
                 .padding(vertical = 12.dp, horizontal = 4.dp)
         ) {
-            SourceLine(a, showTopic = showTopic)
-            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SourceLine(a, showTopic = showTopic, modifier = Modifier.weight(1f))
+                IconButton(onClick = { actions.toggleSave(item) }, modifier = Modifier.size(32.dp)) {
+                    AnimatedContent(
+                        targetState = item.saved,
+                        transitionSpec = { (scaleIn(initialScale = 0.6f) + fadeIn()) togetherWith (scaleOut(targetScale = 0.6f) + fadeOut()) },
+                        label = "save",
+                    ) { saved ->
+                        Icon(
+                            if (saved) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
+                            contentDescription = stringResource(if (saved) R.string.action_unsave else R.string.action_save),
+                            tint = if (saved) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+                IconButton(onClick = { actions.showMenu(item) }, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        Icons.Rounded.MoreVert, stringResource(R.string.action_more),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.Top) {
                 Text(
                     a.title,
@@ -170,42 +192,24 @@ fun ArticleRow(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
-                if (a.related.isNotEmpty()) {
-                    Surface(
-                        onClick = { expanded = !expanded },
-                        shape = RoundedCornerShape(50),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                    ) {
-                        Row(Modifier.padding(start = 10.dp, end = 6.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                pluralStringResource(R.plurals.more_sources, a.related.size, a.related.size),
-                                style = MaterialTheme.typography.labelMedium,
-                            )
-                            Icon(
-                                if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                                null,
-                                modifier = Modifier.size(18.dp),
-                            )
-                        }
-                    }
-                }
-                Spacer(Modifier.weight(1f))
-                IconButton(onClick = { actions.toggleSave(item) }) {
-                    AnimatedContent(
-                        targetState = item.saved,
-                        transitionSpec = { (scaleIn(initialScale = 0.6f) + fadeIn()) togetherWith (scaleOut(targetScale = 0.6f) + fadeOut()) },
-                        label = "save",
-                    ) { saved ->
+            if (a.related.isNotEmpty()) {
+                Surface(
+                    onClick = { expanded = !expanded },
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.padding(top = 10.dp),
+                ) {
+                    Row(Modifier.padding(start = 10.dp, end = 6.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            pluralStringResource(R.plurals.more_sources, a.related.size, a.related.size),
+                            style = MaterialTheme.typography.labelMedium,
+                        )
                         Icon(
-                            if (saved) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
-                            contentDescription = stringResource(if (saved) R.string.action_unsave else R.string.action_save),
-                            tint = if (saved) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                            null,
+                            modifier = Modifier.size(18.dp),
                         )
                     }
-                }
-                IconButton(onClick = { actions.showMenu(item) }) {
-                    Icon(Icons.Rounded.MoreVert, stringResource(R.string.action_more), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             AnimatedVisibility(visible = expanded, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {

@@ -14,8 +14,8 @@ class MarketApi(private val http: Http) {
 
     fun quote(m: MarketDef, range: String = "1mo", interval: String = "1d"): Quote {
         return runCatching { yahoo(m, range, interval) }.getOrElse { e ->
-            val awesome = m.awesome ?: throw e
-            awesome(m, awesome)
+            val pair = m.awesome ?: throw e
+            awesome(m, pair)
         }
     }
 

@@ -7,7 +7,7 @@ import androidx.compose.material.icons.rounded.Dehaze
 import androidx.compose.material.icons.rounded.Grain
 import androidx.compose.material.icons.rounded.NightsStay
 import androidx.compose.material.icons.rounded.Thunderstorm
-import androidx.compose.material.icons.rounded.Umbrella
+import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material.icons.rounded.WbCloudy
 import androidx.compose.material.icons.rounded.WbSunny
 import androidx.compose.ui.graphics.Color
@@ -36,7 +36,7 @@ object WeatherText {
         3 -> Icons.Rounded.Cloud
         45, 48 -> Icons.Rounded.Dehaze
         51, 53, 55, 56, 57 -> Icons.Rounded.Grain
-        61, 63, 65, 66, 67, 80, 81, 82 -> Icons.Rounded.Umbrella
+        61, 63, 65, 66, 67, 80, 81, 82 -> Icons.Rounded.WaterDrop
         71, 73, 75, 77, 85, 86 -> Icons.Rounded.AcUnit
         95, 96, 99 -> Icons.Rounded.Thunderstorm
         else -> Icons.Rounded.Cloud

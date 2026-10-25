@@ -169,7 +169,10 @@ fun BancaTheme(
         reducedMotion = reducedMotion,
     )
     CompositionLocalProvider(LocalExtras provides extras) {
-        MaterialTheme(colorScheme = scheme, typography = AppTypography, shapes = AppShapes, content = content)
+        MaterialTheme(colorScheme = scheme, typography = AppTypography, shapes = AppShapes) {
+            // Text outside a Surface would otherwise default to black, unreadable in dark mode.
+            CompositionLocalProvider(androidx.compose.material3.LocalContentColor provides scheme.onBackground, content = content)
+        }
     }
 }
 
