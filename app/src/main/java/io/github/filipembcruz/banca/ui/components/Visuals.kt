@@ -141,7 +141,7 @@ fun ImageViewer(url: String, onDismiss: () -> Unit) {
  * drifting clouds, rain, snow, fog and lightning, depending on the WMO code.
  */
 @Composable
-fun WeatherScene(code: Int, day: Boolean, modifier: Modifier = Modifier) {
+fun WeatherScene(code: Int, day: Boolean, modifier: Modifier = Modifier, compact: Boolean = false) {
     val reduced = LocalExtras.current.reducedMotion
     val t = rememberInfiniteTransition(label = "wx")
     val clock by t.animateFloat(
@@ -149,13 +149,16 @@ fun WeatherScene(code: Int, day: Boolean, modifier: Modifier = Modifier) {
     )
     val time = if (reduced) 0.35f else clock
 
-    Canvas(modifier) {
+    // In the compact card the scene stays in the middle and softer, away from the text and temperature.
+    Canvas(modifier.graphicsLayer { alpha = if (compact) 0.75f else 1f }) {
+        val sx = if (compact) 0.6f else 0.84f
+        val sy = if (compact) 0.5f else 0.22f
         val rain = code in 51..67 || code in 80..82 || code in 95..99
         val snow = code in 71..77 || code in 85..86
         val clouds = code in 1..3 || rain || snow || code in 45..48
         when {
-            !day -> moon(time)
-            code == 0 || code in 1..2 -> sun(time)
+            !day -> moon(time, sx, sy)
+            code == 0 || code in 1..2 -> sun(time, sx, sy)
         }
         if (clouds) clouds(time, heavy = code == 3 || rain || snow)
         if (code in 45..48) fog(time)
@@ -165,8 +168,8 @@ fun WeatherScene(code: Int, day: Boolean, modifier: Modifier = Modifier) {
     }
 }
 
-private fun DrawScope.sun(t: Float) {
-    val c = Offset(size.width * 0.84f, size.height * 0.22f)
+private fun DrawScope.sun(t: Float, sx: Float, sy: Float) {
+    val c = Offset(size.width * sx, size.height * sy)
     val r = size.minDimension * 0.16f
     val pulse = 1f + 0.06f * sin(t * 2 * PI * 3).toFloat()
     drawCircle(
@@ -184,8 +187,8 @@ private fun DrawScope.sun(t: Float) {
     drawCircle(Color(0x55FFF5C2), radius = r, center = c)
 }
 
-private fun DrawScope.moon(t: Float) {
-    val c = Offset(size.width * 0.84f, size.height * 0.24f)
+private fun DrawScope.moon(t: Float, sx: Float, sy: Float) {
+    val c = Offset(size.width * sx, size.height * sy)
     val r = size.minDimension * 0.13f
     drawCircle(Brush.radialGradient(listOf(Color(0x33FFFFFF), Color.Transparent), c, r * 3f), radius = r * 3f, center = c)
     drawCircle(Color(0x66FFFFFF), radius = r, center = c)

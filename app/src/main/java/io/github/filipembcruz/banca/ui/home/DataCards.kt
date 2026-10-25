@@ -114,7 +114,7 @@ private fun WeatherPanel(w: Weather, expanded: Boolean, onToggle: () -> Unit, on
             .clickable(onClick = onToggle)
             .animateContentSize(spring(stiffness = Spring.StiffnessMediumLow))
     ) {
-        WeatherScene(w.code, w.isDay, Modifier.matchParentSize())
+        WeatherScene(w.code, w.isDay, Modifier.matchParentSize(), compact = !expanded)
         Column(Modifier.padding(horizontal = 18.dp, vertical = 14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(WeatherText.icon(w.code, w.isDay), null, tint = Color.White, modifier = Modifier.size(30.dp))
