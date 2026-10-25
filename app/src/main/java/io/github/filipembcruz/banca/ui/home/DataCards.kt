@@ -74,11 +74,11 @@ import io.github.filipembcruz.banca.ui.nav.LocalSettings
 import io.github.filipembcruz.banca.ui.theme.LocalExtras
 
 @Composable
-fun WeatherCard(places: List<Place>, weather: Map<String, Weather>, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun WeatherCard(places: List<Place>, weather: Map<String, Weather>, onClick: () -> Unit, modifier: Modifier = Modifier, initiallyExpanded: Boolean = false) {
     if (places.isEmpty()) return
     val pager = rememberPagerState { places.size }
     // Compact by default; a tap opens the forecast. Shared by every place in the pager.
-    var expanded by rememberSaveable { mutableStateOf(false) }
+    var expanded by rememberSaveable { mutableStateOf(initiallyExpanded) }
     Column(modifier) {
         HorizontalPager(state = pager, pageSpacing = 12.dp, verticalAlignment = Alignment.Top) { page ->
             val p = places[page]

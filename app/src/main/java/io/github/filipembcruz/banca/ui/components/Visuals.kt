@@ -150,9 +150,12 @@ fun WeatherScene(code: Int, day: Boolean, modifier: Modifier = Modifier, compact
     val time = if (reduced) 0.35f else clock
 
     // In the compact card the scene stays in the middle and softer, away from the text and temperature.
-    Canvas(modifier.graphicsLayer { alpha = if (compact) 0.75f else 1f }) {
-        val sx = if (compact) 0.6f else 0.84f
-        val sy = if (compact) 0.5f else 0.22f
+    Canvas(modifier.graphicsLayer { alpha = if (compact) 0.75f else 0.85f }) {
+        // Everything is sized from a band at the top of the card, so the expanded card's
+        // forecast row and the temperature stay clear.
+        val unit = minOf(size.height, size.width * 0.3f)
+        val sx = 0.6f
+        val sy = if (compact) 0.5f else unit * 0.5f / size.height
         val rain = code in 51..67 || code in 80..82 || code in 95..99
         val snow = code in 71..77 || code in 85..86
         val clouds = code in 1..3 || rain || snow || code in 45..48
@@ -160,7 +163,7 @@ fun WeatherScene(code: Int, day: Boolean, modifier: Modifier = Modifier, compact
             !day -> moon(time, sx, sy)
             code == 0 || code in 1..2 -> sun(time, sx, sy)
         }
-        if (clouds) clouds(time, heavy = code == 3 || rain || snow)
+        if (clouds) clouds(time, heavy = code == 3 || rain || snow, unit = unit)
         if (code in 45..48) fog(time)
         if (rain) rain(time, heavy = code in 63..67 || code in 81..82 || code >= 95)
         if (snow) snow(time)
@@ -170,7 +173,7 @@ fun WeatherScene(code: Int, day: Boolean, modifier: Modifier = Modifier, compact
 
 private fun DrawScope.sun(t: Float, sx: Float, sy: Float) {
     val c = Offset(size.width * sx, size.height * sy)
-    val r = size.minDimension * 0.16f
+    val r = minOf(size.height, size.width * 0.3f) * 0.16f
     val pulse = 1f + 0.06f * sin(t * 2 * PI * 3).toFloat()
     drawCircle(
         Brush.radialGradient(listOf(Color(0x66FFF3B0), Color.Transparent), c, r * 3.2f * pulse),
@@ -189,7 +192,7 @@ private fun DrawScope.sun(t: Float, sx: Float, sy: Float) {
 
 private fun DrawScope.moon(t: Float, sx: Float, sy: Float) {
     val c = Offset(size.width * sx, size.height * sy)
-    val r = size.minDimension * 0.13f
+    val r = minOf(size.height, size.width * 0.3f) * 0.13f
     drawCircle(Brush.radialGradient(listOf(Color(0x33FFFFFF), Color.Transparent), c, r * 3f), radius = r * 3f, center = c)
     drawCircle(Color(0x66FFFFFF), radius = r, center = c)
     drawCircle(Color(0x33000000), radius = r * 0.85f, center = Offset(c.x + r * 0.45f, c.y - r * 0.2f))
@@ -210,15 +213,15 @@ private fun DrawScope.cloud(center: Offset, w: Float, alpha: Float) {
         cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.12f))
 }
 
-private fun DrawScope.clouds(t: Float, heavy: Boolean) {
-    val w = size.minDimension * 0.9f
+private fun DrawScope.clouds(t: Float, heavy: Boolean, unit: Float) {
+    val w = unit * 0.9f
     // Whole laps per cycle so the loop restarts without a jump.
     val lap = size.width + w
     val drift = t * lap
-    val alpha = if (heavy) 0.22f else 0.16f
-    cloud(Offset(((size.width * 0.6f + drift) % lap) - w / 2, size.height * 0.28f), w, alpha)
-    cloud(Offset(((size.width * 0.1f + drift * 2f) % lap) - w / 2, size.height * 0.55f), w * 0.7f, alpha * 0.8f)
-    if (heavy) cloud(Offset(((size.width * 0.9f + drift) % lap) - w / 2, size.height * 0.12f), w * 0.8f, alpha)
+    val alpha = if (heavy) 0.14f else 0.11f
+    cloud(Offset(((size.width * 0.6f + drift) % lap) - w / 2, unit * 0.32f), w, alpha)
+    cloud(Offset(((size.width * 0.1f + drift * 2f) % lap) - w / 2, unit * 0.62f), w * 0.7f, alpha * 0.8f)
+    if (heavy) cloud(Offset(((size.width * 0.9f + drift) % lap) - w / 2, unit * 0.14f), w * 0.8f, alpha)
 }
 
 private fun DrawScope.rain(t: Float, heavy: Boolean) {

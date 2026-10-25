@@ -29,6 +29,7 @@ import io.github.filipembcruz.banca.data.settings.ThemeMode
 import io.github.filipembcruz.banca.ui.home.FeedPage
 import io.github.filipembcruz.banca.ui.home.HomeHeader
 import io.github.filipembcruz.banca.ui.home.TabStrip
+import io.github.filipembcruz.banca.ui.home.WeatherCard
 import io.github.filipembcruz.banca.ui.nav.LocalSettings
 import io.github.filipembcruz.banca.ui.onboarding.TopicGrid
 import io.github.filipembcruz.banca.ui.reader.ReaderBody
@@ -150,6 +151,22 @@ class ScreenshotTest {
 
     @Test fun onboarding_topics() = shot("06_onboarding_topics") {
         Box(Modifier.padding(24.dp)) { TopicGrid(setOf("world", "business", "technology", "sports")) {} }
+    }
+
+    private fun weatherWith(code: Int, day: Boolean) = mapOf(
+        place.key to weather.getValue(place.key).copy(code = code, isDay = day)
+    )
+
+    @Test fun weather_cards() = shot("09_weather", dark = true) {
+        Column(Modifier.padding(16.dp)) {
+            WeatherCard(listOf(place), weatherWith(3, false), onClick = {}, initiallyExpanded = true)
+            androidx.compose.foundation.layout.Spacer(Modifier.padding(8.dp))
+            WeatherCard(listOf(place), weatherWith(95, true), onClick = {}, initiallyExpanded = true)
+            androidx.compose.foundation.layout.Spacer(Modifier.padding(8.dp))
+            WeatherCard(listOf(place), weatherWith(0, true), onClick = {})
+            androidx.compose.foundation.layout.Spacer(Modifier.padding(8.dp))
+            WeatherCard(listOf(place), weatherWith(61, true), onClick = {})
+        }
     }
 
     @Test fun settings_home() = shot("07_settings") { SettingsHome(navigate = {}, bottomPadding = 0.dp) }
